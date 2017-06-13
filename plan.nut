@@ -104,11 +104,14 @@ RoadConnectionPlan::constructor(producerId, consumerId, cargoId)
 
    bestEngineId = _ChooseBestEngineId();
 
-   _AddAction(FindStationSpaceNearIndustryAction(producerId, cargoId, "producerStationTile"));
-   _AddAction(FindStationSpaceNearIndustryAction(consumerId, cargoId, "consumerStationTile"));
-   _AddAction(BuildStationAction(cargoId, "producerStationTile"));
-   _AddAction(BuildStationAction(cargoId, "consumerStationTile"));
-   _AddAction(FindAndBuildRoadAction(// TODO));
+   local producerTileString = "producerStationTile";
+   local consumerTileString = "consumerStationTile";
+   _AddAction(ProvideStationAction(producerId, cargoId, producerTileString));
+   _AddAction(ProvideStationAction(consumerId, cargoId, consumerTileString));
+   _AddAction(FindAndBuildRoadAction(producerTileString, consumerTileString));
+   _AddAction(ProvideDepotAction(producerTileString, "depot1"));
+   _AddAction(ProvideDepotAction(consumerTileString, "depot2"));
+   _AddAction(BuildTrucks(bestEngineId, cargoId, producerTileString, consumerTileString, "depot1"));
 }
 
 function RoadConnectionPlan::Name()
