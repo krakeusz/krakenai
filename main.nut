@@ -1,6 +1,6 @@
 import("util.superlib", "SuperLib", 40);
 
-require("roadconnection.nut");
+require("PlanChooser.nut");
 
 class KrakenAI extends AIController
 {
@@ -23,12 +23,18 @@ function KrakenAI::Start()
 {
   SetCompanyInfo();
   SuperLib.Money.MaxLoan();
+  local planChooser = PlanChooser();
   while (true)
   {
     HandleEvents();
     AILog.Info("KrakenAI: we are at tick " + this.GetTick());
-    local roadConnection = RoadConnection();
-    roadConnection.Build();
+
+    local plan = planChooser.NextPlan();
+    if (plan != null)
+    {
+      plan.Realise();
+    }
+
     AILog.Info("KrakenAI: we are at tick " + this.GetTick());
     AILog.Info("Remaining operations allowed this tick: " + this.GetOpsTillSuspend());
     this.Sleep(50);
