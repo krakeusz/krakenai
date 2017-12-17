@@ -223,7 +223,6 @@ function RoadConnection::_BuyAndStartVehicles(depotTile, engineId, cargoId, stat
 
 function RoadConnection::Build()
 {
-  AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
 
   local bestProducerId = _FindBestProducerId();
   if (bestProducerId == null) return;
