@@ -1,4 +1,5 @@
 require("Action.nut")
+require("../RoadHelpers.nut")
 
 import("util.superlib", "SuperLib", 40);
 
@@ -46,7 +47,7 @@ function ProvideStationAction::_Do(context)
   context.rawset(this.stationTileKey + "entrance", entranceTile);
   local roadVehicleType = AIRoad.GetRoadVehicleTypeForCargo(cargoId);
   _BuildStation(stationTile, entranceTile, roadVehicleType)
-  AIRoad.BuildRoad(stationTile, entranceTile);
+  RoadHelpers.BuildRoad(stationTile, entranceTile);
   context.rawset(this.stationTileKey, stationTile)
 }
 
@@ -75,7 +76,7 @@ function ProvideStationAction::_BuildStation(stationTile, entranceTile, roadVehi
   local succeeded = AIRoad.BuildRoadStation(stationTile, entranceTile, roadVehicleType, AIStation.STATION_NEW);
   if (!succeeded)
   {
-    throw "Building a station '" + this.stationName + "' at (" + SuperLib.Tile.GetTileKey(stationTile) + ") failed: " + AIError.GetLastErrorString()
+    throw "Building a station '" + this.stationName + "' at (" + SuperLib.Tile.GetTileString(stationTile) + ") failed: " + AIError.GetLastErrorString()
   }
   local stationId = AIStation.GetStationID(stationTile);
   _RenameStation(stationId);
@@ -90,9 +91,10 @@ function ProvideStationAction::_RenameStation(stationId)
   do
   {
     success = AIBaseStation.SetName(stationId, newStationName);
-    if (!success)
+    if (!success && AIError.GetLastError() != AIError.ERR_NAME_IS_NOT_UNIQUE)
     {
-      AILog.Warn("Could not rename station: " + AIError.GetLastErrorString());
+      AILog.Warning("Could not rename station: " + AIError.GetLastErrorString());
+      break;
     }
     i++;
     newStationName = this.stationName + " " + i;

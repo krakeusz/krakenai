@@ -1,4 +1,5 @@
 require("Action.nut")
+require("../RoadHelpers.nut")
 
 class BuildTrucksAction extends Action
 {
@@ -41,11 +42,7 @@ function BuildTrucksAction::_Do(context)
   local depotTile = context.rawget(this.depotTileKey);
   for (local i = 0; i < this.nTrucks; i++)
   {
-    local vehicleId = AIVehicle.BuildVehicle(depotTile, this.engineId);
-    if (!AIVehicle.IsValidVehicle(vehicleId))
-    {
-      throw "Cannot build vehicle " + AIEngine.GetName(engineId) + ": " + AIError.GetLastErrorString();
-    }
+    local vehicleId = RoadHelpers.BuildTruck(depotTile, engineId);
     if (!AIVehicle.RefitVehicle(vehicleId, this.cargoId)) {
       AIVehicle.SellVehicle(vehicleId);
       throw "Cannot refit vehicle " + AIEngine.GetName(engineId) + " to cargo " + AICargo.GetCargoLabel(cargoId);
