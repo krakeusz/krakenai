@@ -1,5 +1,3 @@
-require("BackgroundTask.nut")
-
 class RoadHelpers
 {
   static function BuildTruck(depotTile, vehicleId); // returns vehicleId or throws
@@ -114,5 +112,4 @@ function RoadHelpers::_Delay(reason, ticks)
 {
   AILog.Warning(reason + ", will try again in " + ticks + " ticks...");
   AIController.Sleep(ticks);
-  BackgroundTask.Run();
 }
