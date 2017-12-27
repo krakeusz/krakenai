@@ -1,6 +1,8 @@
 import("util.superlib", "SuperLib", 40);
 
 require("PlanChooser.nut");
+require("BackgroundTaskWorker.nut");
+require("BackgroundTask.nut");
 
 class KrakenAI extends AIController
 {
@@ -21,6 +23,7 @@ function KrakenAI::SetCompanyInfo()
 
 function KrakenAI::Start()
 {
+  BackgroundTask._proxy._worker = BackgroundTaskWorker();
   SetCompanyInfo();
   SuperLib.Money.MaxLoan();
   local planChooser = PlanChooser();
@@ -28,7 +31,7 @@ function KrakenAI::Start()
   {
     HandleEvents();
     AILog.Info("KrakenAI: we are at tick " + this.GetTick());
-
+    
     local plan = planChooser.NextPlan();
     if (plan != null)
     {

@@ -1,4 +1,5 @@
 require("plans/RoadConnectionPlan.nut");
+require("BackgroundTask.nut");
 
 class PlanChooser
 {
@@ -57,6 +58,7 @@ function PlanChooser::_FindBestProducerId()
   if (industries.IsEmpty())
   {
     AILog.Warning("No industries left that produced anything last month, no action taken!");
+    BackgroundTask.Run();
     return null;
   }
   return industries.Begin();

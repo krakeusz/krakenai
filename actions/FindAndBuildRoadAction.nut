@@ -1,4 +1,5 @@
 require("Action.nut")
+require("../BackgroundTask.nut")
 require("../RoadHelpers.nut")
 import("pathfinder.road", "RoadPathFinder", 3);
 
@@ -37,7 +38,8 @@ function FindAndBuildRoadAction::_Do(context)
 
   local path = false;
   while (path == false) {
-    path = pathfinder.FindPath(100);
+    path = pathfinder.FindPath(200);
+    BackgroundTask.Run();
     AIController.Sleep(1);
   }
   AILog.Info("Found path!");

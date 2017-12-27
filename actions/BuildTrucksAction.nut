@@ -21,6 +21,7 @@ class BuildTrucksAction extends Action
   function Name(context);
   function _Do(context);
   function _Undo(context);
+  function _RenameGroup(groupId, context);
 
   engineId = -1;
   cargoId = -1;
@@ -32,21 +33,32 @@ class BuildTrucksAction extends Action
 
 function BuildTrucksAction::Name(context)
 {
-  return "Building " + this.nTrucks + " trucks for " + context.connectionName;
+  return "Building " + this.nTrucks + " trucks for " + context.shortConnectionName;
 }
 
 function BuildTrucksAction::_Do(context)
 {
   AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
-
+  local groupId = AIGroup.CreateGroup(AIVehicle.VT_ROAD);
+  if (!AIGroup.IsValidGroup(groupId))
+  {
+    throw "Cannot create group: " + AIError.GetLastErrorString();
+  }
+  _RenameGroup(groupId, context);
   local depotTile = context.rawget(this.depotTileKey);
   for (local i = 0; i < this.nTrucks; i++)
   {
     local vehicleId = RoadHelpers.BuildTruck(depotTile, engineId);
-    if (!AIVehicle.RefitVehicle(vehicleId, this.cargoId)) {
-      AIVehicle.SellVehicle(vehicleId);
-      throw "Cannot refit vehicle " + AIEngine.GetName(engineId) + " to cargo " + AICargo.GetCargoLabel(cargoId);
+    try
+    {
+      RoadHelpers.RefitTruck(vehicleId, cargoId);
     }
+    catch (ex)
+    {
+      AIVehicle.SellVehicle(vehicleId);
+      throw ex;
+    }
+    AIGroup.MoveVehicle(groupId, vehicleId);
     local producerTile = context.rawget(this.producerTileKey);
     AIOrder.AppendOrder(vehicleId, producerTile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_FULL_LOAD_ANY);
     local consumerTile = context.rawget(this.consumerTileKey);
@@ -59,4 +71,24 @@ function BuildTrucksAction::_Do(context)
 
 function BuildTrucksAction::_Undo(context)
 {
+}
+
+function BuildTrucksAction::_RenameGroup(groupId, context)
+{
+  local i = 1;
+  local newGroupName = context.shortConnectionName;
+  AILog.Info("Trying to rename group to " + newGroupName);
+  local success = false;
+  do
+  {
+    success = AIGroup.SetName(groupId, newGroupName);
+    if (!success && AIError.GetLastError() != AIError.ERR_NAME_IS_NOT_UNIQUE)
+    {
+      AILog.Warning("Could not rename group: " + AIError.GetLastErrorString());
+      break;
+    }
+    i++;
+    newGroupName = context.shortConnectionName + " " + i;
+  } while (!success);
+
 }

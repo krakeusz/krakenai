@@ -16,6 +16,7 @@ class RoadConnectionPlan extends Plan
     context.cargoId <- cargoId;
     this.name = AIIndustry.GetName(producerId) + " - " + AIIndustry.GetName(consumerId) + " (" + AICargo.GetCargoLabel(cargoId) + ")";
     context.connectionName <- this.name;
+    context.shortConnectionName <- AICargo.GetCargoLabel(cargoId) + " " + _IndustryShortName(producerId) + "-" + _IndustryShortName(consumerId);
 
     local producerTileKey = "producerStationTile";
     local producerStationName = _IndustryShortName(producerId) + " " + AICargo.GetCargoLabel(cargoId) + " PICKUP";
