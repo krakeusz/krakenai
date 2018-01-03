@@ -33,7 +33,7 @@ function PlanChooser::NextRoadConnectionPlan()
     AILog.Warning("No industries accepting " + bestCargoName + "! Abandoning the project.");
     return null;
   }
-  local BEST_DISTANCE_TO_DROP = 70;
+  local BEST_DISTANCE_TO_DROP = 100;
   local producerTile = AIIndustry.GetLocation(bestProducerId);
   acceptingIndustries.Valuate(_IndustryManhattanDistanceToCircle, BEST_DISTANCE_TO_DROP, producerTile);
   acceptingIndustries.Sort(AIList.SORT_BY_VALUE, AIList.SORT_ASCENDING);
