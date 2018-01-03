@@ -1,7 +1,8 @@
 require("Action.nut")
 require("../BackgroundTask.nut")
 require("../RoadHelpers.nut")
-import("pathfinder.road", "RoadPathFinder", 3);
+//import("pathfinder.road", "RoadPathFinder", 3);
+import("util.superlib", "SuperLib", 40)
 
 class FindAndBuildRoadAction extends Action
 {
@@ -29,16 +30,20 @@ function FindAndBuildRoadAction::Name(context)
 function FindAndBuildRoadAction::_Do(context)
 {
   AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
-  local pathfinder = RoadPathFinder();
+  local pathfinder = SuperLib.RoadPathFinder();
   local producerTile = context.rawget(this.producerTileKey);
   local consumerTile = context.rawget(this.consumerTileKey);
   AILog.Info("Finding path...");
-  pathfinder.InitializePath([producerTile], [consumerTile]);
-  pathfinder.cost.slope = 50;
+  pathfinder.InitializePath([producerTile], [consumerTile], false, [], 2);
 
-  local path = false;
-  while (path == false) {
+  local path = null;
+  while (path == null) {
     path = pathfinder.FindPath(200);
+    local error = pathfinder.GetFindPathError();
+    if (error != SuperLib.RoadPathFinder.PATH_FIND_NO_ERROR)
+    {
+      throw "Cannot find path between two stations: " + error;
+    }
     BackgroundTask.Run();
     AIController.Sleep(1);
   }
@@ -58,6 +63,7 @@ function FindAndBuildRoadAction::_Do(context)
           if (AITunnel.GetOtherTunnelEnd(path.GetTile()) == par.GetTile()) {
             if (!AITunnel.BuildTunnel(AIVehicle.VT_ROAD, path.GetTile())) {
               /* An error occured while building a tunnel. */
+              // TODO re-try if low on cash
               RoadHelpers.PrintRoadBuildError(path.GetTile(), par.GetTile(), "tunnel");
             }
           } else {
@@ -66,6 +72,7 @@ function FindAndBuildRoadAction::_Do(context)
             bridge_list.Sort(AIList.SORT_BY_VALUE, false);
             if (!AIBridge.BuildBridge(AIVehicle.VT_ROAD, bridge_list.Begin(), path.GetTile(), par.GetTile())) {
               /* An error occured while building a bridge. */
+              // TODO re-try if low on cash
               RoadHelpers.PrintRoadBuildError(path.GetTile(), par.GetTile(), "bridge");
             }
           }

@@ -5,6 +5,8 @@ class RoadHelpers
   static function RefitTruck(vehicleId, cargoId);
   static function PrintRoadBuildError(tileA, tileB, entityName);
   static function BuildRoad(fromTile, toTile); // returns or throws
+  static function BuildRoroStation(stationTile, entranceTile, roadVehicleType, stationId);
+  static function WaitForFundsWithMargin(fundsRequired);
   static function _Delay(reason, ticks);
 }
 
@@ -105,6 +107,30 @@ function RoadHelpers::BuildRoad(fromTile, toTile)
         RoadHelpers.PrintRoadBuildError(fromTile, toTile, "road segment");
         throw "Error while building road segment"
     }
+  }
+}
+
+function RoadHelpers::BuildRoroStation(stationTile, entranceTile, roadVehicleType, stationId)
+{
+  while (!AIRoad.BuildDriveThroughRoadStation(stationTile, entranceTile, roadVehicleType, stationId))
+  {
+    switch (AIError.GetLastError())
+    {
+      case AIError.ERR_NOT_ENOUGH_CASH:
+        RoadHelpers._Delay("Not enough cash to build station", 50);
+        break;
+      default:
+        throw "Error while building roro station " + AIError.GetLastErrorString()
+    }
+  }
+}
+
+function RoadHelpers::WaitForFundsWithMargin(fundsRequired)
+{
+  const MARGIN = 10;
+  while (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < fundsRequired + MARGIN)
+  {
+    RoadHelpers._Delay("Not enough cash, waiting until we have " + (fundsRequired+MARGIN), 50);
   }
 }
 
