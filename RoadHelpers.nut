@@ -3,8 +3,10 @@ class RoadHelpers
   static function BuildTruck(depotTile, vehicleId); // returns vehicleId or throws
   static function CloneTruck(depotTile, templateVehicle);
   static function RefitTruck(vehicleId, cargoId);
-  static function PrintRoadBuildError(tileA, tileB, entityName);
+  static function PrintRoadBuildError(fromTile, toTile, entityName);
   static function BuildRoad(fromTile, toTile); // returns or throws
+  static function BuildBridge(vehicleType, bridgeId, fromTile, toTile);
+  static function BuildTunnel(vehicleType, fromTile, toTile);
   static function BuildRoroStation(stationTile, entranceTile, roadVehicleType, stationId);
   static function WaitForFundsWithMargin(fundsRequired);
   static function _Delay(reason, ticks);
@@ -84,10 +86,10 @@ function RoadHelpers::RefitTruck(vehicleId, cargoId)
   return vehicleId;
 }
 
-function RoadHelpers::PrintRoadBuildError(tileA, tileB, entityName)
+function RoadHelpers::PrintRoadBuildError(fromTile, toTile, entityName)
 {
-  AILog.Error("Cannot build " + entityName + " between " + SuperLib.Tile.GetTileString(tileA) + " and " +
-      SuperLib.Tile.GetTileString(tileB) + ": " + AIError.GetLastErrorString());
+  AILog.Error("Cannot build " + entityName + " between " + SuperLib.Tile.GetTileString(fromTile) + " and " +
+      SuperLib.Tile.GetTileString(toTile) + ": " + AIError.GetLastErrorString());
 }
 
 function RoadHelpers::BuildRoad(fromTile, toTile)
@@ -106,6 +108,46 @@ function RoadHelpers::BuildRoad(fromTile, toTile)
       default:
         RoadHelpers.PrintRoadBuildError(fromTile, toTile, "road segment");
         throw "Error while building road segment"
+    }
+  }
+}
+
+function RoadHelpers::BuildBridge(vehicleType, bridgeId, fromTile, toTile)
+{
+  while (!AIBridge.BuildBridge(vehicleType, bridgeId, fromTile, toTile)) {
+    switch (AIError.GetLastError())
+    {
+      case AIError.ERR_NOT_ENOUGH_CASH:
+        RoadHelpers._Delay("Not enough cash to build bridge", 50);
+        break;
+      case AIError.ERR_ALREADY_BUILT:
+        return;
+      case AIError.ERR_VEHICLE_IN_THE_WAY:
+        RoadHelpers._Delay("Cannot build bridge: vehicle in the way", 10);
+        break;
+      default:
+        RoadHelpers.PrintRoadBuildError(fromTile, toTile, "bridge");
+        throw "Error while building bridge"
+    }
+  }
+}
+
+function RoadHelpers::BuildTunnel(vehicleType, fromTile, toTile)
+{
+  while (!AITunnel.BuildTunnel(vehicleType, fromTile)) {
+    switch (AIError.GetLastError())
+    {
+      case AIError.ERR_NOT_ENOUGH_CASH:
+        RoadHelpers._Delay("Not enough cash to build tunnel", 50);
+        break;
+      case AIError.ERR_ALREADY_BUILT:
+        return;
+      case AIError.ERR_VEHICLE_IN_THE_WAY:
+        RoadHelpers._Delay("Cannot build tunnel: vehicle in the way", 10);
+        break;
+      default:
+        RoadHelpers.PrintRoadBuildError(fromTile, toTile, "tunnel");
+        throw "Error while building tunnel"
     }
   }
 }
