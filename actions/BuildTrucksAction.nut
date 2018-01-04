@@ -62,7 +62,7 @@ function BuildTrucksAction::_Do(context)
     local producerTile = context.rawget(this.producerTileKey);
     AIOrder.AppendOrder(vehicleId, producerTile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_FULL_LOAD_ANY);
     local consumerTile = context.rawget(this.consumerTileKey);
-    AIOrder.AppendOrder(vehicleId, consumerTile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_UNLOAD);
+    AIOrder.AppendOrder(vehicleId, consumerTile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD);
     AIOrder.AppendOrder(vehicleId, depotTile, AIOrder.OF_SERVICE_IF_NEEDED | AIOrder.OF_NON_STOP_INTERMEDIATE);
     AIVehicle.StartStopVehicle(vehicleId);
   }
