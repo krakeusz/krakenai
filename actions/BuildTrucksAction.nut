@@ -3,14 +3,15 @@ require("../RoadHelpers.nut")
 
 class BuildTrucksAction extends Action
 {
-  constructor(context, engineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depotTileKey)
+  constructor(context, engineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1TileKey, depot2TileKey)
   {
     ::Action.constructor();
     this.engineId = engineId;
     this.cargoId = cargoId;
     this.producerTileKey = producerTileKey;
     this.consumerTileKey = consumerTileKey;
-    this.depotTileKey = depotTileKey;
+    this.depot1TileKey = depot1TileKey;
+    this.depot2TileKey = depot2TileKey;
 
     local production = AIIndustry.GetLastMonthProduction(producerId, cargoId);
     local capacity = AIEngine.GetCapacity(engineId);
@@ -27,7 +28,8 @@ class BuildTrucksAction extends Action
   cargoId = -1;
   producerTileKey = "";
   consumerTileKey = "";
-  depotTileKey = "";
+  depot1TileKey = "";
+  depot2TileKey = "";
   nTrucks = 0;
 }
 
@@ -45,10 +47,11 @@ function BuildTrucksAction::_Do(context)
     throw "Cannot create group: " + AIError.GetLastErrorString();
   }
   _RenameGroup(groupId, context);
-  local depotTile = context.rawget(this.depotTileKey);
+  local depot1Tile = context.rawget(this.depot1TileKey);
+  local depot2Tile = context.rawget(this.depot2TileKey);
   for (local i = 0; i < this.nTrucks; i++)
   {
-    local vehicleId = RoadHelpers.BuildTruck(depotTile, engineId);
+    local vehicleId = RoadHelpers.BuildTruck(depot1Tile, engineId);
     try
     {
       RoadHelpers.RefitTruck(vehicleId, cargoId);
@@ -63,7 +66,8 @@ function BuildTrucksAction::_Do(context)
     AIOrder.AppendOrder(vehicleId, producerTile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_FULL_LOAD_ANY);
     local consumerTile = context.rawget(this.consumerTileKey);
     AIOrder.AppendOrder(vehicleId, consumerTile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD);
-    AIOrder.AppendOrder(vehicleId, depotTile, AIOrder.OF_SERVICE_IF_NEEDED | AIOrder.OF_NON_STOP_INTERMEDIATE);
+    AIOrder.AppendOrder(vehicleId, depot2Tile, AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE);
+    AIOrder.AppendOrder(vehicleId, depot1Tile, AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE);
     AIVehicle.StartStopVehicle(vehicleId);
   }
   return true;

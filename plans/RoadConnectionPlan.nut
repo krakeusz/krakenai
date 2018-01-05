@@ -27,8 +27,10 @@ class RoadConnectionPlan extends Plan
     _AddAction(FindAndBuildRoadAction(context, producerTileKey + "entrance", consumerTileKey + "entrance"));
     local depot1Name = producerStationName + " depot";
     _AddAction(ProvideDepotAction(context, producerTileKey + "entrance", depot1Name));
+    local depot2Name = consumerStationName + " depot";
+    _AddAction(ProvideDepotAction(context, consumerTileKey + "entrance", depot2Name));
     local bestEngineId = _ChooseBestEngineId(cargoId);
-    _AddAction(BuildTrucksAction(context, bestEngineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1Name + "_tile"));
+    _AddAction(BuildTrucksAction(context, bestEngineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1Name + "_tile", depot2Name + "_tile"));
   }
 
   function Name();
