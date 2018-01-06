@@ -73,7 +73,7 @@ function PlanChooser::_IndustryBestCargoAndEval(industryId)
   cargos.KeepValue(1);
   local bestCargoId = -1;
   local bestEval = 0;
-  local AVG_DISTANCE = 50;
+  local AVG_DISTANCE = 100;
   local AVG_DAYS = 30;
   for (local cargoId = cargos.Begin(); !cargos.IsEnd(); cargoId = cargos.Next())
   {

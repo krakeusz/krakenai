@@ -1,3 +1,4 @@
+require("Settings.nut")
 
 class KrakenAIInfo extends AIInfo {
   function GetAuthor()      { return "Mateusz 'krakeusz' Krakowiak"; }
@@ -8,7 +9,8 @@ class KrakenAIInfo extends AIInfo {
   function CreateInstance() { return "KrakenAI"; }
   function GetShortName()   { return "KRAI"; }
   function GetAPIVersion()  { return "1.3"; }
-  // TODO GetURL()
+  function GetURL()         { return "https://github.com/krakeusz/krakenai"; }
+  function GetSettings()    { return Settings.GetSettings(); }
 }
 
 RegisterAI(KrakenAIInfo());

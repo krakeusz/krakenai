@@ -22,6 +22,22 @@ class BackgroundTaskWorker
   isRunning = false;
 }
 
+function BackgroundTaskWorker::_Run()
+{
+  if (isRunning) { return; } // could recurse, we don't want that
+  isRunning = true;
+  AILog.Info("BackgroundTaskWorker::_Run()");
+  try
+  {
+    _AdjustVehicleCounts();
+  }
+  catch (exceptionString)
+  {
+    AILog.Error("Cannot do background task: " + exceptionString);
+  }
+  isRunning = false;
+}
+
 function BackgroundTaskWorker::_AdjustVehicleCounts()
 {
   local myStations = AIStationList(AIStation.STATION_TRUCK_STOP);
@@ -130,22 +146,6 @@ class IndustriesCargoStation
   industryIds = null;
   cargoId = -1;
   stationId = -1;
-}
-
-function BackgroundTaskWorker::_Run()
-{
-  if (isRunning) { return; } // could recurse, we don't want that
-  isRunning = true;
-  AILog.Info("BackgroundTaskWorker::_Run()");
-  try
-  {
-    _AdjustVehicleCounts();
-  }
-  catch (exceptionString)
-  {
-    AILog.Error("Cannot do background task: " + exceptionString);
-  }
-  isRunning = false;
 }
 
 function BackgroundTaskWorker::_GetStationCargoPairs()
