@@ -72,6 +72,7 @@ function BackgroundTaskWorker::_AdjustVehicleCountStation(stationId, cargoId)
 function BackgroundTaskWorker::_FindNearestDepot(stationId)
 {
   local depots = AIDepotList(AITile.TRANSPORT_ROAD);
+  // TODO this might not be the nearest in terms of pathfinding, this might even not be reachable from the station...
   depots.Valuate(AITile.GetDistanceManhattanToTile, AIStation.GetLocation(stationId));
   depots.KeepBottom(1);
   return depots.Begin();

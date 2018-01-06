@@ -80,6 +80,7 @@ function PlanChooser::_ReasonableCargosToPickup(industryId)
     stations.Valuate(AIStation.HasCargoRating, cargoId);
     stations.KeepValue(1);
     stations.Valuate(SuperLib.Station.IsCargoSuppliedByIndustry, cargoId, industryId);
+    stations.KeepValue(1);
     return !stations.IsEmpty();
   }
   cargos.Valuate(isPickedByOurStation, industryId);
