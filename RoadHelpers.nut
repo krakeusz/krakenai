@@ -1,3 +1,5 @@
+import("util.superlib", "SuperLib", 40);
+
 class RoadHelpers
 {
   static function BuildTruck(depotTile, vehicleId); // returns vehicleId or throws
@@ -5,6 +7,7 @@ class RoadHelpers
   static function RefitTruck(vehicleId, cargoId);
   static function PrintRoadBuildError(fromTile, toTile, entityName);
   static function BuildRoad(fromTile, toTile); // returns or throws
+  static function BuildDepotNextToRoad(roadTile);
   static function BuildBridge(vehicleType, bridgeId, fromTile, toTile);
   static function BuildTunnel(vehicleType, fromTile, toTile);
   static function BuildRoroStation(stationTile, entranceTile, roadVehicleType, stationId);
@@ -110,6 +113,24 @@ function RoadHelpers::BuildRoad(fromTile, toTile)
         throw "Error while building road segment"
     }
   }
+}
+
+function RoadHelpers::BuildDepotNextToRoad(roadTile)
+{
+  // TODO this will fail if the entrance tile is not a road, but a bridge
+  local depotTile = null;
+  local retriesLeft = 6;
+  while (retriesLeft > 0 && depotTile == null)
+  {
+    depotTile = SuperLib.Road.BuildDepotNextToRoad(roadTile, 1, 20);
+    retriesLeft--;
+    if (depotTile == null)
+    {
+      RoadHelpers._Delay("Could not build a depot, probably because we're low on cash", 100);
+    }
+  }
+  if (null == depotTile) throw "Could not build a depot!";
+  return depotTile;
 }
 
 function RoadHelpers::BuildBridge(vehicleType, bridgeId, fromTile, toTile)

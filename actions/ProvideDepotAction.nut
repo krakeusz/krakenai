@@ -1,4 +1,5 @@
 require("Action.nut")
+require("../RoadHelpers.nut")
 
 class ProvideDepotAction extends Action
 {
@@ -27,9 +28,7 @@ function ProvideDepotAction::_Do(context)
 {
   AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
   local entranceTile = context.rawget(this.entranceTileKey);
-  // TODO this will fail if the entrance tile is not a road, but a bridge
-  local depotTile = SuperLib.Road.BuildDepotNextToRoad(entranceTile, 1, 20);
-  if (null == depotTile) throw "Could not build a depot!";
+  local depotTile = RoadHelpers.BuildDepotNextToRoad(entranceTile);
   context.rawset(this.name + "_tile", depotTile);
 }
 
