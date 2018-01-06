@@ -39,7 +39,6 @@ function KrakenAI::Start()
     }
 
     AILog.Info("KrakenAI: we are at tick " + this.GetTick());
-    AILog.Info("Remaining operations allowed this tick: " + this.GetOpsTillSuspend());
     this.Sleep(50);
   }
 }

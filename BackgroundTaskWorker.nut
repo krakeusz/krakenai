@@ -6,9 +6,6 @@ class BackgroundTaskWorker
 {
   function _Run();
 
-  function _GetStationCargoPairs();
-  function _GetIndustryCargoStations();
-
   function _IncomingPickupTrucks(stationId); // -> AIVehicleList
   function _AdjustVehicleCounts();
   function _AdjustVehicleCountStation(stationId, cargoId);
@@ -40,8 +37,9 @@ function BackgroundTaskWorker::_Run()
 
 function BackgroundTaskWorker::_AdjustVehicleCounts()
 {
-  local myStations = AIStationList(AIStation.STATION_TRUCK_STOP);
-  // TODO on some newgrf (firs2) passengers are also transported, but are they trucks?
+  local myStations = AIStationList(AIStation.STATION_ANY);
+  myStations.Valuate(AIStation.HasRoadType, AIRoad.ROADTYPE_ROAD);
+  myStations.KeepValue(1);
   for (local stationId = myStations.Begin(); !myStations.IsEnd(); stationId = myStations.Next())
   {
     local cargos = AICargoList();
@@ -147,69 +145,3 @@ class IndustriesCargoStation
   cargoId = -1;
   stationId = -1;
 }
-
-function BackgroundTaskWorker::_GetStationCargoPairs()
-{
-  local pairs = array(0);
-  local myStations = AIStationList(AIStation.STATION_TRUCK_STOP);
-  for (local stationId = myStations.Begin(); !myStations.IsEnd(); stationId = myStations.Next())
-  {
-    local ics = IndustriesCargoStation();
-    ics.stationId = stationId;
-    // works only if station has rating of only 1 cargo
-    local tiles = SuperLib.Station.GetAcceptanceCoverageTiles(stationId);
-    for (local tileId = tiles.Begin(); !tiles.IsEnd(); tileId = tiles.Next())
-    {
-      // TODO If this belongs to the smallest rectangle containing industry, but station is not there, the station will still accept cargo but we won't enter here
-      local industryId = AIIndustry.GetIndustryID(tileId);
-      if (AIIndustry.IsValidIndustry(industryId))
-      {
-        local cargos = AICargoList_IndustryProducing(industryId);
-        for (local cargoId = cargos.Begin(); !cargos.IsEnd(); cargoId = cargos.Next())
-        {
-          if (AIStation.HasCargoRating(stationId, cargoId) && ics.cargoId == -1)
-          {
-            ics.cargoId = cargoId;
-            ics.industryIds[industryId] <- 0;
-          }
-        }
-      }
-    }
-    if (ics.cargoId != -1)
-    {
-      //AILog.Info("Station " + AIStation.GetName(ics.stationId) + " accepts cargo " + AICargo.GetCargoLabel(ics.cargoId) + " from industry(s):");
-      foreach(industryId, _ in ics.industryIds)
-      {
-        //AILog.Info(AIIndustry.GetName(industryId));
-      }
-      pairs.append(ics);
-    }
-  }
-//    local allCargos = AICargoList();
-//    for (local cargoId = allCargos.Begin(); !allCargos.IsEnd(); cargoId = allCargos.Next())
-//    {
-//      if (AIStation.HasCargoRating(stationId, cargoId))
-//      {
-//        pairs.append({station=stationId, cargo=cargoId});
-//      }
-//    }
-//  }
-  return pairs;
-}
-
-function BackgroundTaskWorker::_GetIndustryCargoStations()
-{
-  local industries = AIIndustryList();
-  industries.Valuate(AIIndustry.GetAmountOfStationsAround);
-  industries.KeepAboveValue(0); // heuristic to remove most industries from calculations
-  for (local industryId = industries.Begin(); !industries.IsEnd(); industryId = industries.Next())
-  {
-    cargos = AICargoList_IndustryProducing(industryId);
-    for (local cargoId = cargos.Begin(); !cargos.IsEnd(); cargoId = cargos.Next())
-    {
-
-    }
-  }
-
-}
-

@@ -1,17 +1,16 @@
 require("plans/RoadConnectionPlan.nut");
 require("BackgroundTask.nut");
 
+import("util.superlib", "SuperLib", 40);
+
 class PlanChooser
 {
   function NextPlan();
 
   function NextRoadConnectionPlan();
 
-  static function _IndustryBestEval(industryId);
-  static function _IndustryBestCargo(industryId);
-  static function _IndustryBestCargoAndEval(industryId);
-  static function _IndustryManhattanDistanceToCircle(industryId, circleRadius, centerTile);
-  static function _FindBestProducerId();
+  function _ReasonableCargosToPickup(industryId);
+  function _CargoIndustryBestConsumerAndEval(cargoId, industryId);
 }
 
 function PlanChooser::NextPlan()
@@ -21,84 +20,102 @@ function PlanChooser::NextPlan()
 
 function PlanChooser::NextRoadConnectionPlan()
 {
-  local bestProducerId = _FindBestProducerId();
-  if (bestProducerId == null) return null;
-  local bestCargoId = _IndustryBestCargo(bestProducerId);
-  local bestCargoName = AICargo.GetCargoLabel(bestCargoId);
-  AILog.Info("The best cargo to carry now is " + bestCargoName);
-  AILog.Info("The best industry producing " + bestCargoName + " is " + AIIndustry.GetName(bestProducerId));
-  local acceptingIndustries = AIIndustryList_CargoAccepting(bestCargoId);
-  if (acceptingIndustries.IsEmpty())
+  local allIndustries = AIIndustryList();
+  local bestEval = -1;
+  local bestProducer = -1;
+  local bestCargo = -1;
+  local bestConsumer = -1;
+  for (local industryId = allIndustries.Begin(); !allIndustries.IsEnd(); industryId = allIndustries.Next())
   {
-    AILog.Warning("No industries accepting " + bestCargoName + "! Abandoning the project.");
+    local cargos = _ReasonableCargosToPickup(industryId);
+    for (local cargoId = cargos.Begin(); !cargos.IsEnd(); cargoId = cargos.Next())
+    {
+      local consumerAndEval = _CargoIndustryBestConsumerAndEval(cargoId, industryId);
+      if (consumerAndEval != null && consumerAndEval.eval > bestEval)
+      {
+        bestEval = consumerAndEval.eval;
+        bestProducer = industryId;
+        bestCargo = cargoId;
+        bestConsumer = consumerAndEval.consumerId;
+      }
+    }
+  }
+
+  if (bestEval < 0)
+  {
+    AILog.Warning("Could not find any possible road connections.");
     return null;
   }
-  local BEST_DISTANCE_TO_DROP = 100;
-  local producerTile = AIIndustry.GetLocation(bestProducerId);
-  acceptingIndustries.Valuate(_IndustryManhattanDistanceToCircle, BEST_DISTANCE_TO_DROP, producerTile);
-  acceptingIndustries.Sort(AIList.SORT_BY_VALUE, AIList.SORT_ASCENDING);
-  local bestConsumerId = acceptingIndustries.Begin();
-  AILog.Info("The best industry accepting " + bestCargoName + " is " + AIIndustry.GetName(bestConsumerId));
-
-  return RoadConnectionPlan(bestProducerId, bestConsumerId, bestCargoId);
+  AILog.Info("Best connection is from " + AIIndustry.GetName(bestProducer) +
+             " to " + AIIndustry.GetName(bestConsumer) +
+             " with cargo " + AICargo.GetCargoLabel(bestCargo));
+  return RoadConnectionPlan(bestProducer, bestConsumer, bestCargo);
 }
 
-function PlanChooser::_FindBestProducerId()
-{
-  local industries = AIIndustryList();
-  industries.Valuate(AIIndustry.GetAmountOfStationsAround); // TODO: consider multi-producing industries and so on
-  industries.KeepValue(0);
-  if (industries.IsEmpty())
-  {
-    AILog.Warning("No unserviced industries left, no action taken!");
-    return null;
-  }
-  industries.Valuate(PlanChooser._IndustryBestEval);
-  industries.KeepAboveValue(0);
-  if (industries.IsEmpty())
-  {
-    AILog.Warning("No industries left that produced anything last month, no action taken!");
-    BackgroundTask.Run();
-    return null;
-  }
-  return industries.Begin();
-}
-
-function PlanChooser::_IndustryBestCargoAndEval(industryId)
+function PlanChooser::_ReasonableCargosToPickup(industryId)
 {
   // Find the cargo which this industry produces and is "most profitable"
   local cargos = AICargoList_IndustryProducing(industryId);
   // Exclude cargos which no trucks can carry
   cargos.Valuate(SuperLib.Engine.DoesEngineExistForCargo, AIVehicle.VT_ROAD);
   cargos.KeepValue(1);
-  local bestCargoId = -1;
-  local bestEval = 0;
-  local AVG_DISTANCE = 100;
-  local AVG_DAYS = 30;
-  for (local cargoId = cargos.Begin(); !cargos.IsEnd(); cargoId = cargos.Next())
+  // Exclude cargos that were not produced by this industry last month
+  local lastMonthProductionFun = function(cargo, industry)
   {
-    local eval = AIIndustry.GetLastMonthProduction(industryId, cargoId) * AICargo.GetCargoIncome(cargoId, AVG_DISTANCE, AVG_DAYS);
-    if (eval > bestEval)
-    {
-      bestEval = eval;
-      bestCargoId = cargoId;
-    }
+    return AIIndustry.GetLastMonthProduction(industry, cargo);
+  };
+  cargos.Valuate(lastMonthProductionFun, industryId);
+  cargos.KeepAboveValue(0);
+  // Exclude cargos that are already being transported by other competitors, or by us
+  local lastMonthTransportedPercentFun = function(cargo, industry)
+  {
+    return AIIndustry.GetLastMonthTransportedPercentage(industry, cargo);
   }
-  return { cargoId = bestCargoId, eval = bestEval };
+  cargos.Valuate(lastMonthTransportedPercentFun, industryId);
+  cargos.KeepValue(0);
+  // The previous filter doesn't work in the first month of route. So filter also our stations that accept this cargo.
+  local isPickedByOurStation = function(cargoId, industryId)
+  {
+    local stations = AIStationList(AIStation.STATION_ANY);
+    stations.Valuate(AIStation.HasCargoRating, cargoId);
+    stations.KeepValue(1);
+    stations.Valuate(SuperLib.Station.IsCargoSuppliedByIndustry, cargoId, industryId);
+    return !stations.IsEmpty();
+  }
+  cargos.Valuate(isPickedByOurStation, industryId);
+  cargos.KeepValue(0);
+  return cargos;
 }
 
-function PlanChooser::_IndustryBestEval(industryId)
+// For the pair (cargo, producer industry), calculate pair (how good is this combination, best consumer for this combination).
+function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
 {
-  return PlanChooser._IndustryBestCargoAndEval(industryId).eval;
-}
+  local consumers = AIIndustryList_CargoAccepting(cargoId);
+  consumers.RemoveItem(producerId); // not allowing connections from an industry to itself
+  if (consumers.IsEmpty())
+  {
+    return null; // no consumers accepting this cargo
+  }
 
-function PlanChooser::_IndustryBestCargo(industryId)
-{
-  return PlanChooser._IndustryBestCargoAndEval(industryId).cargoId;
-}
-
-function PlanChooser::_IndustryManhattanDistanceToCircle(industryId, circleRadius, centerTile)
-{
-  local distToIndustry = AIIndustry.GetDistanceManhattanToTile(industryId, centerTile);
-  return abs(circleRadius - distToIndustry);
+  local bestConsumerId = -1;
+  local bestEval = -100000;
+  const AVG_DAYS = 30;
+  const BEST_DISTANCE_TO_DROP = 100;
+  local consumerEval = function(consumerId, cargoId, producerId)
+  {
+    local production = AIIndustry.GetLastMonthProduction(producerId, cargoId);
+    local distance = AIIndustry.GetDistanceManhattanToTile(producerId, AIIndustry.GetLocation(consumerId));
+    local distanceFactor = 1 - abs(distance - BEST_DISTANCE_TO_DROP) / BEST_DISTANCE_TO_DROP;
+    local cargoIncome = AICargo.GetCargoIncome(cargoId, distance, AVG_DAYS);
+    return production * distanceFactor * cargoIncome;
+  };
+  consumers.Valuate(consumerEval, cargoId, producerId);
+  consumers.Sort(AIList.SORT_BY_VALUE, false); // descending
+  local bestConsumer = consumers.Begin();
+  local bestEval = consumers.GetValue(bestConsumer);
+  if (bestEval <= 0)
+  {
+    return null; // no reasonable consumers
+  }
+  return { consumerId = bestConsumer, eval = bestEval };
 }
