@@ -16,6 +16,7 @@ class Action
 
   function _Do(context); // override in subclass
   function _Undo(context); // override in subclass
+  function _OnError(context); // override if you want to
 
   isDone = false;
 }
@@ -55,6 +56,10 @@ function Action::Do(context)
   catch (exceptionString)
   {
     AILog.Error(exceptionString);
+    if (!this.isDone)
+    {
+      _OnError(context);
+    }
     return false;
   }
 }
@@ -86,5 +91,9 @@ function Action::_Do(context)
 function Action::_Undo(context)
 {
   throw "The method " + getclass().getattributes().ClassName + "::_Undo(context) is not defined!"
+}
+
+function Action::_OnError(context)
+{
 }
 

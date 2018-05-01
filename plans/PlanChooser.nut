@@ -1,5 +1,6 @@
-require("plans/RoadConnectionPlan.nut");
-require("BackgroundTask.nut");
+require("RoadConnectionPlan.nut");
+require("../BackgroundTask.nut");
+require("../PersistentStorage.nut");
 
 import("util.superlib", "SuperLib", 40);
 
@@ -25,8 +26,13 @@ function PlanChooser::NextRoadConnectionPlan()
   local bestProducer = -1;
   local bestCargo = -1;
   local bestConsumer = -1;
+  local unusableIndustries = PersistentStorage.LoadUnusableIndustries();
   for (local industryId = allIndustries.Begin(); !allIndustries.IsEnd(); industryId = allIndustries.Next())
   {
+    if (industryId in unusableIndustries)
+    {
+      continue;
+    }
     local cargos = _ReasonableCargosToPickup(industryId);
     for (local cargoId = cargos.Begin(); !cargos.IsEnd(); cargoId = cargos.Next())
     {
@@ -93,6 +99,11 @@ function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
 {
   local consumers = AIIndustryList_CargoAccepting(cargoId);
   consumers.RemoveItem(producerId); // not allowing connections from an industry to itself
+  local unusableIndustries = PersistentStorage.LoadUnusableIndustries();
+  foreach (unusableIndustry,_ in unusableIndustries)
+  {
+    consumers.RemoveItem(unusableIndustry);
+  }
   if (consumers.IsEmpty())
   {
     return null; // no consumers accepting this cargo

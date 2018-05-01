@@ -1,5 +1,6 @@
 require("Action.nut")
 require("../RoadHelpers.nut")
+require("../PersistentStorage.nut")
 
 import("util.superlib", "SuperLib", 40);
 
@@ -54,6 +55,14 @@ function ProvideStationAction::_Do(context)
 
 function ProvideStationAction::_Undo(context)
 {
+}
+
+function ProvideStationAction::_OnError(context)
+{
+  local unusableIndustries = PersistentStorage.LoadUnusableIndustries();
+  AILog.Info("Excluding " + AIIndustry.GetName(this.industryId) + " from possible industry list");
+  unusableIndustries[this.industryId] <- true
+  PersistentStorage.SaveUnusableIndustries(unusableIndustries);
 }
 
 function ProvideStationAction::_AddToAll(tileList, tile)

@@ -1,11 +1,19 @@
 import("util.superlib", "SuperLib", 40);
 
-require("PlanChooser.nut");
+require("plans/PlanChooser.nut");
 require("BackgroundTaskWorker.nut");
 require("BackgroundTask.nut");
+require("PersistentStorageWorker.nut");
+require("PersistentStorage.nut");
 
 class KrakenAI extends AIController
 {
+  constructor()
+  {
+    BackgroundTask._proxy._worker = BackgroundTaskWorker();
+    PersistentStorage._proxy._worker = PersistentStorageWorker();
+  }
+
   function SetCompanyInfo();
   function Start();
   function HandleEvents();
@@ -23,7 +31,6 @@ function KrakenAI::SetCompanyInfo()
 
 function KrakenAI::Start()
 {
-  BackgroundTask._proxy._worker = BackgroundTaskWorker();
   SetCompanyInfo();
   SuperLib.Money.MaxLoan();
   local planChooser = PlanChooser();
@@ -36,6 +43,10 @@ function KrakenAI::Start()
     if (plan != null)
     {
       plan.Realise();
+    }
+    else
+    {
+      BackgroundTask.Run();
     }
 
     AILog.Info("KrakenAI: we are at tick " + this.GetTick());
@@ -58,4 +69,15 @@ function KrakenAI::HandleEvents()
     }
   }
 }
+
+function KrakenAI::Save()
+{
+  return PersistentStorage.Save();
+}
+
+function KrakenAI::Load(version, data)
+{
+  PersistentStorage.Load(version, data);
+}
+
 
