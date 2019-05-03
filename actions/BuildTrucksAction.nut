@@ -1,5 +1,6 @@
 require("Action.nut")
 require("../RoadHelpers.nut")
+require("../TruckOrders.nut")
 
 class BuildTrucksAction extends Action
 {
@@ -61,14 +62,12 @@ function BuildTrucksAction::_Do(context)
       AIVehicle.SellVehicle(vehicleId);
       throw ex;
     }
+
     AIGroup.MoveVehicle(groupId, vehicleId);
+
     local producerTile = context.rawget(this.producerTileKey);
-    AIOrder.AppendOrder(vehicleId, producerTile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_FULL_LOAD_ANY);
     local consumerTile = context.rawget(this.consumerTileKey);
-    AIOrder.AppendOrder(vehicleId, consumerTile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD);
-    AIOrder.AppendOrder(vehicleId, depot2Tile, AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE);
-    AIOrder.AppendOrder(vehicleId, depot1Tile, AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE);
-    AIVehicle.StartStopVehicle(vehicleId);
+    TruckOrders.SetDefaultTruckOrders(vehicleId, producerTile, consumerTile, depot1Tile, depot2Tile);
   }
   return true;
 }
