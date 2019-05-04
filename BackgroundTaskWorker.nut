@@ -129,7 +129,7 @@ function BackgroundTaskWorker::_FindNearestDepot(stationId)
 
 function BackgroundTaskWorker::_CloneAndStartVehicle(templateVehicle, templateGroup, depotLocation)
 {
-  local vehicleId = RoadHelpers.CloneTruck(depotLocation, templateVehicle);
+  local vehicleId = RoadHelpers.CloneRoadVehicle(depotLocation, templateVehicle);
   AIGroup.MoveVehicle(templateGroup, vehicleId);
   AIVehicle.StartStopVehicle(vehicleId);
 }

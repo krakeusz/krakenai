@@ -2,9 +2,9 @@ import("util.superlib", "SuperLib", 40);
 
 class RoadHelpers
 {
-  static function BuildTruck(depotTile, vehicleId); // returns vehicleId or throws
-  static function CloneTruck(depotTile, templateVehicle);
-  static function RefitTruck(vehicleId, cargoId);
+  static function BuildRoadVehicle(depotTile, engineId); // returns vehicleId or throws
+  static function CloneRoadVehicle(depotTile, templateVehicle);
+  static function RefitRoadVehicle(vehicleId, cargoId);
   static function PrintRoadBuildError(fromTile, toTile, entityName);
   static function BuildRoad(fromTile, toTile); // returns or throws
   static function BuildDepotNextToRoad(roadTile);
@@ -12,10 +12,20 @@ class RoadHelpers
   static function BuildTunnel(vehicleType, fromTile, toTile);
   static function BuildRoroStation(stationTile, entranceTile, roadVehicleType, stationId);
   static function WaitForFundsWithMargin(fundsRequired);
+  static function StationCapacityInTrucks(stationTile, engineId, cargoId);
+  static function RoadStationTypeForCargo(cargoId);
   static function _Delay(reason, ticks);
+
+  // This function could be slow, because if we don't have any vehicles with given engineId, we will build and sell one.
+  //! @param engineId ID of engine in question.
+  //! @param testDepotId ID of a depo, that could be used to buy and sell a temporary vehicle.
+  //! @return engine length in 1/16th of a tile
+  static function FindEngineLength(engineId, testDepotId);
+
+  static function FindAnyVehicle(engineId);
 }
 
-function RoadHelpers::BuildTruck(depotTile, engineId)
+function RoadHelpers::BuildRoadVehicle(depotTile, engineId)
 {
   local vehicleId = -1;
   local buildSuccessful = false;
@@ -41,7 +51,7 @@ function RoadHelpers::BuildTruck(depotTile, engineId)
   return vehicleId;
 }
 
-function RoadHelpers::CloneTruck(depotTile, templateVehicle)
+function RoadHelpers::CloneRoadVehicle(depotTile, templateVehicle)
 {
   local vehicleId = -1;
   local cloneSuccessful = false;
@@ -68,7 +78,7 @@ function RoadHelpers::CloneTruck(depotTile, templateVehicle)
   return vehicleId;
 }
 
-function RoadHelpers::RefitTruck(vehicleId, cargoId)
+function RoadHelpers::RefitRoadVehicle(vehicleId, cargoId)
 {
   local refitSuccessful = false;
   while (!refitSuccessful)
@@ -201,4 +211,60 @@ function RoadHelpers::_Delay(reason, ticks)
 {
   AILog.Warning(reason + ", will try again in " + ticks + " ticks...");
   AIController.Sleep(ticks);
+}
+
+// vehicleLength is in 1/16th of a tile
+function RoadHelpers::StationCapacityInTrucks(stationTile, vehicleLength, cargoId)
+{
+  local stationType = RoadHelpers.RoadStationTypeForCargo(cargoId);
+  local stationId = AIStation.GetStationID(stationTile);
+  local stationTiles = AITileList_StationType(stationId, stationType);
+  local stationTileCount = stationTiles.Count();
+  // Assuming that station tiles are connected "parallelly", not in "series".
+  local vehiclesPerStationTile = SuperLib.Helper.Max(1, 16 / vehicleLength.tointeger());
+  assert(typeof(vehiclesPerStationTile) == "integer");
+  return stationTileCount * vehiclesPerStationTile;
+}
+
+function RoadHelpers::RoadStationTypeForCargo(cargoId)
+{
+  local roadVehicleType = AIRoad.GetRoadVehicleTypeForCargo(cargoId);
+  switch (roadVehicleType)
+  {
+    case AIRoad.ROADVEHTYPE_BUS:
+      return AIStation.STATION_BUS_STOP;
+    case AIRoad.ROADVEHTYPE_TRUCK:
+      return AIStation.STATION_TRUCK_STOP;
+    default:
+      throw "Invalid RoadVehicleType: " + roadVehicleType;  
+  }
+}
+
+function RoadHelpers::FindEngineLength(engineId, testDepotTile)
+{
+  // It's a shame that the NoAI API requires a vehicle to be built, if we want to get engine length.
+  // Let's check first if we have, by any chance, an instance of the engine - a vehicle.
+  local anyVehicle = RoadHelpers.FindAnyVehicle(engineId);
+  if (anyVehicle != null)
+  {
+    return AIVehicle.GetLength(anyVehicle);
+  }
+  
+  // Build a vehicle, then sell it.
+  local tempVehicleId = RoadHelpers.BuildRoadVehicle(testDepotTile, engineId);
+  local engineLength = AIVehicle.GetLength(tempVehicleId);
+  AIVehicle.SellVehicle(tempVehicleId);
+  return engineLength;
+}
+
+function RoadHelpers::FindAnyVehicle(engineId)
+{
+  local myVehicles = AIVehicleList();
+  myVehicles.Valuate(AIVehicle.GetEngineType);
+  myVehicles.KeepValue(engineId);
+  if (myVehicles.IsEmpty())
+  {
+    return null;
+  }
+  return myVehicles.Begin();
 }

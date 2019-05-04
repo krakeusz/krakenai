@@ -24,6 +24,7 @@ class BuildTrucksAction extends Action
   function _Do(context);
   function _Undo(context);
   function _RenameGroup(groupId, context);
+  function _AdjustTruckCountToStationSize(context);
 
   engineId = -1;
   cargoId = -1;
@@ -36,7 +37,7 @@ class BuildTrucksAction extends Action
 
 function BuildTrucksAction::Name(context)
 {
-  return "Building " + this.nTrucks + " trucks for " + context.shortConnectionName;
+  return "Building at most " + this.nTrucks + " trucks for " + context.shortConnectionName;
 }
 
 function BuildTrucksAction::_Do(context)
@@ -50,12 +51,13 @@ function BuildTrucksAction::_Do(context)
   _RenameGroup(groupId, context);
   local depot1Tile = context.rawget(this.depot1TileKey);
   local depot2Tile = context.rawget(this.depot2TileKey);
+  _AdjustTruckCountToStationSize(context);
   for (local i = 0; i < this.nTrucks; i++)
   {
-    local vehicleId = RoadHelpers.BuildTruck(depot1Tile, engineId);
+    local vehicleId = RoadHelpers.BuildRoadVehicle(depot1Tile, engineId);
     try
     {
-      RoadHelpers.RefitTruck(vehicleId, cargoId);
+      RoadHelpers.RefitRoadVehicle(vehicleId, cargoId);
     }
     catch (ex)
     {
@@ -94,4 +96,16 @@ function BuildTrucksAction::_RenameGroup(groupId, context)
     newGroupName = context.shortConnectionName + " " + i;
   } while (!success);
 
+}
+
+function BuildTrucksAction::_AdjustTruckCountToStationSize(context)
+{
+  local depotTile = context.rawget(this.depot1TileKey);
+  local engineLength = RoadHelpers.FindEngineLength(engineId, depotTile);
+  local stationTile = context.rawget(this.producerTileKey);
+  local stationCapacityInTrucks = RoadHelpers.StationCapacityInTrucks(stationTile, engineLength, cargoId);
+  if (stationCapacityInTrucks < nTrucks)
+  {
+    nTrucks = stationCapacityInTrucks;
+  }
 }
