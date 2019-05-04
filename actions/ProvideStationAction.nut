@@ -124,8 +124,17 @@ function ProvideStationAction::_FindStationRectNearIndustry()
       RoadHelpers.WaitForFundsWithMargin(bestCost);
       if (!SuperLib.Tile.FlatternRect(bestTopLeftTile, WIDTH, HEIGHT))
       {
-        AILog.Warning("Could not flatten area " + SuperLib.Tile.GetTileString(bestTopLeftTile) + " for station: " + AIError.GetLastErrorString());
+        // TODO: ERR_NONE is not a good error
+        local errorReason = AIError.GetLastErrorString();
         excludeNotFlatTiles(bestTopLeftTile, excludedTopLeftTiles);
+        if (AITile.GetCornerHeight(bestTopLeftTile, AITile.CORNER_N) == 0)
+        {
+          // If the N corner is at sea level, then it's still possible that this tile is considered flat by SuperLib.
+          // In that scenario, we would not exclude that tile and fall into infinite loop.
+          excludedTopLeftTiles.AddTile(bestTopLeftTile);
+          errorReason = "Cannot raise top rectangle tile above sea level";
+        }
+        AILog.Warning("Could not flatten area " + SuperLib.Tile.GetTileString(bestTopLeftTile) + " for station: " + errorReason);
         continue;
       }
       if (!SuperLib.Tile.IsTileRectBuildableAndFlat(bestTopLeftTile, WIDTH, HEIGHT))
