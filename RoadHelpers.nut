@@ -223,7 +223,8 @@ function RoadHelpers::StationCapacityInTrucks(stationTile, vehicleLength, cargoI
   // Assuming that station tiles are connected "parallelly", not in "series".
   local vehiclesPerStationTile = SuperLib.Helper.Max(1, 16 / vehicleLength.tointeger());
   assert(typeof(vehiclesPerStationTile) == "integer");
-  return stationTileCount * vehiclesPerStationTile;
+  const TRAFFIC_LANES_PER_ROAD = 2;
+  return stationTileCount * vehiclesPerStationTile * TRAFFIC_LANES_PER_ROAD;
 }
 
 function RoadHelpers::RoadStationTypeForCargo(cargoId)
