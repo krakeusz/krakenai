@@ -1,0 +1,3 @@
+- When a station is build, first trucks are sent so quickly that another plan wants to build another station at the same location.
+- Limit of 50 units of cargo, for cloning vehicles, is not good for industries producing less than 50 a month - the local rating is very bad because very little trucks service the station.
+
