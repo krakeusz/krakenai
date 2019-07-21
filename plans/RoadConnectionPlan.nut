@@ -4,6 +4,7 @@ require("../actions/BuildTrucksAction.nut");
 require("../actions/FindAndBuildRoadAction.nut");
 require("../actions/ProvideDepotAction.nut");
 require("../actions/ProvideStationAction.nut");
+require("../actions/WaitForFirstTruckAtPickupAction.nut");
 
 class RoadConnectionPlan extends Plan
 {
@@ -31,6 +32,7 @@ class RoadConnectionPlan extends Plan
     _AddAction(ProvideDepotAction(context, consumerTileKey + "entrance", depot2Name));
     local bestEngineId = _ChooseBestEngineId(cargoId);
     _AddAction(BuildTrucksAction(context, bestEngineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1Name + "_tile", depot2Name + "_tile"));
+    _AddAction(WaitForFirstTruckAtPickupAction(context, producerStationName, producerTileKey, cargoId));
   }
 
   function Name();
