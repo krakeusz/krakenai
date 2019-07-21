@@ -1,5 +1,4 @@
 require("Action.nut")
-require("../BackgroundTask.nut")
 require("../RoadHelpers.nut")
 //import("pathfinder.road", "RoadPathFinder", 3);
 import("util.superlib", "SuperLib", 40)
@@ -50,7 +49,7 @@ function FindAndBuildRoadAction::_Do(context)
       {
         throw "Cannot find path between two stations: " + error;
       }
-      BackgroundTask.Run();
+      KrakenAI.BackgroundTask.Run();
       AIController.Sleep(1);
     }
     AILog.Info("Found path!");

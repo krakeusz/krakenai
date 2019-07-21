@@ -1,5 +1,4 @@
 require("RoadConnectionPlan.nut");
-require("../BackgroundTask.nut");
 require("../PersistentStorage.nut");
 
 import("util.superlib", "SuperLib", 40);

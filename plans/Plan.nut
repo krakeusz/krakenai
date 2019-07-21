@@ -1,5 +1,4 @@
 require("../actions/Action.nut");
-require("../BackgroundTask.nut");
 
 class Plan
 {
@@ -55,7 +54,7 @@ function Plan::Realise()
   foreach (i, action in actions)
   {
     local succeeded = action.Do(context);
-    BackgroundTask.Run();
+    KrakenAI.BackgroundTask.Run();
     if (!succeeded)
     {
       AILog.Warning("Action '" + action.Name(context) + "' failed!");

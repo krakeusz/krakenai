@@ -1,8 +1,7 @@
 import("util.superlib", "SuperLib", 40);
 
-require("plans/PlanChooser.nut");
-require("BackgroundTaskWorker.nut");
 require("BackgroundTask.nut");
+require("plans/PlanChooser.nut");
 require("PersistentStorageWorker.nut");
 require("PersistentStorage.nut");
 
@@ -10,13 +9,14 @@ class KrakenAI extends AIController
 {
   constructor()
   {
-    BackgroundTask._proxy._worker = BackgroundTaskWorker();
     PersistentStorage._proxy._worker = PersistentStorageWorker();
   }
 
   function SetCompanyInfo();
   function Start();
   function HandleEvents();
+
+  static BackgroundTask = _KrakenAI_BackgroundTask();
 }
 
 function KrakenAI::SetCompanyInfo()
