@@ -11,11 +11,17 @@ class PlanChooser
 
   function _ReasonableCargosToPickup(industryId);
   function _CargoIndustryBestConsumerAndEval(cargoId, industryId);
+
+  static minTrucksLeftToBuildRoute = 50;
 }
 
 function PlanChooser::NextPlan()
 {
-  return NextRoadConnectionPlan();
+  if (SuperLib.Vehicle.GetVehiclesLeft(AIVehicle.VT_ROAD) >= minTrucksLeftToBuildRoute)
+  {
+    return NextRoadConnectionPlan();
+  }
+  return null;
 }
 
 function PlanChooser::NextRoadConnectionPlan()

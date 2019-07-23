@@ -36,7 +36,7 @@ function WaitForFirstTruckAtPickupAction::_Do(context)
     {
       break;
     }
-    BackgroundTask.Run();
+    KrakenAI.BackgroundTask.Run();
     AILog.Info(Name(context));
     AIController.Sleep(50);
   }

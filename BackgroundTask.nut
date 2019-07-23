@@ -79,6 +79,7 @@ function _KrakenAI_BackgroundTask::_SellVehiclesInDepots()
 
 function _KrakenAI_BackgroundTask::_BuyNewVehiclesIfNeeded(stationId, cargoId)
 {
+  if (SuperLib.Vehicle.GetVehiclesLeft(AIVehicle.VT_ROAD) <= 0) { return; }
   local cargoWaiting = AIStation.GetCargoWaiting(stationId, cargoId);
   if (cargoWaiting < 50) { return; }
   if (_CapacitiesIncomingTrucks(stationId, cargoId) > 0.2 * _PredictedMonthlySupply(stationId, cargoId)) { return; }
