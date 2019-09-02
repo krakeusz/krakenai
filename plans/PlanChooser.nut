@@ -12,6 +12,8 @@ class PlanChooser
   function _ReasonableCargosToPickup(industryId);
   function _CargoIndustryBestConsumerAndEval(cargoId, industryId);
 
+  static function IsCargoSuppliedByIndustry(station_id, cargo_id, industry_id);
+
   static minTrucksLeftToBuildRoute = 50;
 }
 
@@ -22,6 +24,19 @@ function PlanChooser::NextPlan()
     return NextRoadConnectionPlan();
   }
   return null;
+}
+
+function PlanChooser::IsCargoSuppliedByIndustry(station_id, cargo_id, industry_id)
+{
+  // We use this function instead of SuperLib.Station.IsCargoSuppliedByIndustry
+  // because the latter has a bug whenever an industry produces at a tile that is not industry tile (like oil rigs).
+	local max_coverage_radius = SuperLib.Station.GetMaxCoverageRadius(station_id);
+
+	local industry_coverage_tiles = AITileList_IndustryProducing(industry_id, max_coverage_radius);
+	industry_coverage_tiles.Valuate(SuperLib.Station.IsStation, station_id);
+	industry_coverage_tiles.KeepValue(1);
+
+	return !industry_coverage_tiles.IsEmpty() && SuperLib.Industry.IsCargoProduced(industry_id, cargo_id);
 }
 
 function PlanChooser::NextRoadConnectionPlan()
@@ -90,7 +105,7 @@ function PlanChooser::_ReasonableCargosToPickup(industryId)
     local stations = AIStationList(AIStation.STATION_ANY);
     stations.Valuate(AIStation.HasCargoRating, cargoId);
     stations.KeepValue(1);
-    stations.Valuate(SuperLib.Station.IsCargoSuppliedByIndustry, cargoId, industryId);
+    stations.Valuate(PlanChooser.IsCargoSuppliedByIndustry, cargoId, industryId);
     stations.KeepValue(1);
     return !stations.IsEmpty();
   }

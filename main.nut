@@ -37,7 +37,6 @@ function KrakenAI::Start()
   while (true)
   {
     HandleEvents();
-    AILog.Info("KrakenAI: we are at tick " + this.GetTick());
     
     local plan = planChooser.NextPlan();
     if (plan != null)
@@ -49,7 +48,6 @@ function KrakenAI::Start()
       BackgroundTask.Run();
     }
 
-    AILog.Info("KrakenAI: we are at tick " + this.GetTick());
     this.Sleep(50);
   }
 }
