@@ -5,6 +5,7 @@ require("../actions/FindAndBuildRoadAction.nut");
 require("../actions/ProvideDepotAction.nut");
 require("../actions/ProvideStationAction.nut");
 require("../actions/WaitForFirstTruckAtPickupAction.nut");
+require("../StationName.nut")
 
 class RoadConnectionPlan extends Plan
 {
@@ -17,13 +18,13 @@ class RoadConnectionPlan extends Plan
     context.cargoId <- cargoId;
     this.name = AIIndustry.GetName(producerId) + " - " + AIIndustry.GetName(consumerId) + " (" + AICargo.GetCargoLabel(cargoId) + ")";
     context.connectionName <- this.name;
-    context.shortConnectionName <- AICargo.GetCargoLabel(cargoId) + " " + _IndustryShortName(producerId) + "-" + _IndustryShortName(consumerId);
+    context.shortConnectionName <- AICargo.GetCargoLabel(cargoId) + " " + StationName.IndustryShortName(producerId) + "-" + StationName.IndustryShortName(consumerId);
 
     local producerTileKey = "producerStationTile";
-    local producerStationName = _IndustryShortName(producerId) + " " + AICargo.GetCargoLabel(cargoId) + " PICKUP";
+    local producerStationName = StationName.IndustryShortName(producerId) + " " + AICargo.GetCargoLabel(cargoId) + " PICKUP";
     _AddAction(ProvideStationAction(context, producerId, cargoId, producerTileKey, 1, producerStationName));
     local consumerTileKey = "consumerStationTile";
-    local consumerStationName = _IndustryShortName(consumerId) + " " + AICargo.GetCargoLabel(cargoId) + " DROP";
+    local consumerStationName = StationName.IndustryShortName(consumerId) + " " + AICargo.GetCargoLabel(cargoId) + " DROP";
     _AddAction(ProvideStationAction(context, consumerId, cargoId, consumerTileKey, 0, consumerStationName));
     _AddAction(FindAndBuildRoadAction(context, producerTileKey + "entrance", consumerTileKey + "entrance"));
     local depot1Name = producerStationName + " depot";
@@ -39,7 +40,6 @@ class RoadConnectionPlan extends Plan
 
   static function _ChooseBestEngineId(cargoId);
   static function _EngineEval(engineId);
-  static function _IndustryShortName(industryId);
 
   name = "";
 }
@@ -62,17 +62,6 @@ function RoadConnectionPlan::_ChooseBestEngineId(cargoId)
 function RoadConnectionPlan::_EngineEval(engineId)
 {
   return AIEngine.GetMaxSpeed(engineId) * AIEngine.GetCapacity(engineId) * AIEngine.GetReliability(engineId);
-}
-
-function RoadConnectionPlan::_IndustryShortName(industryId)
-{
-  local sliceEnd = 3;
-  local industryName = AIIndustry.GetName(industryId);
-  if (sliceEnd > industryName.len())
-  {
-    sliceEnd = industryName.len();
-  }
-  return industryName.slice(0, sliceEnd).toupper();
 }
 
 function RoadConnectionPlan::Name()

@@ -23,6 +23,9 @@ class RoadHelpers
   static function FindEngineLength(engineId, testDepotId);
 
   static function FindAnyVehicle(engineId);
+
+  // Get the list of vehicles that have the station on their order list and are close to it.
+  static function IncomingTrucks(stationId);
 }
 
 function RoadHelpers::BuildRoadVehicle(depotTile, engineId)
@@ -268,4 +271,29 @@ function RoadHelpers::FindAnyVehicle(engineId)
     return null;
   }
   return myVehicles.Begin();
+}
+
+function RoadHelpers::IncomingTrucksCount(stationId)
+{
+  return RoadHelpers.IncomingTrucks(stationId).Count();
+}
+
+function RoadHelpers::IncomingTrucks(stationId)
+{
+  local vehicles = AIVehicleList_Station(stationId);
+  local stationTile = AIStation.GetLocation(stationId);
+  local distanceEval = function(vehicleId, stationTile)
+  {
+    return AITile.GetDistanceManhattanToTile(stationTile, AIVehicle.GetLocation(vehicleId));
+  };
+  vehicles.Valuate(distanceEval, stationTile);
+  const STATION_DISTANCE_THRESHOLD = 8;
+  vehicles.RemoveAboveValue(STATION_DISTANCE_THRESHOLD);
+
+  vehicles.Valuate(AIVehicle.GetState);
+  vehicles.RemoveValue(AIVehicle.VS_STOPPED);
+  vehicles.RemoveValue(AIVehicle.VS_IN_DEPOT);
+  vehicles.RemoveValue(AIVehicle.VS_CRASHED);
+  vehicles.RemoveValue(AIVehicle.VS_BROKEN);
+  return vehicles;
 }

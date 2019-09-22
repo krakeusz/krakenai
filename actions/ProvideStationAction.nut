@@ -1,6 +1,7 @@
 require("Action.nut")
 require("../RoadHelpers.nut")
 require("../PersistentStorage.nut")
+require("../StationName.nut")
 
 import("util.superlib", "SuperLib", 40);
 
@@ -24,12 +25,17 @@ class ProvideStationAction extends Action
   function _Do(context);
   function _Undo(context);
 
+  function _TryReusingStation(context);
+  function _BuildNewStation(context);
   function _FindStationTileNearIndustry();
   function _FindStationRectNearIndustry();
   function _AddToAll(tileList, tile);
   function _BuildTerminusStation(stationTile, entranceTile, roadVehicleType);
   function _BuildRoroStation3x3(topLeftTile, roadVehicleType);
-  function _RenameStation(stationId);
+
+  static function _IsCargoAcceptedByIndustry(station_id, cargo_id, industry_id);
+  static function _IsDropStation(station_id);
+
 
   industryId = -1;
   cargoId = -1;
@@ -45,12 +51,10 @@ function ProvideStationAction::Name(context)
 
 function ProvideStationAction::_Do(context)
 {
-  AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
-  local topLeftTile = _FindStationRectNearIndustry();
-  context.rawset(this.stationTileKey + "entrance", topLeftTile);
-  local roadVehicleType = AIRoad.GetRoadVehicleTypeForCargo(cargoId);
-  _BuildRoroStation3x3(topLeftTile, roadVehicleType);
-  context.rawset(this.stationTileKey, topLeftTile + AIMap.GetTileIndex(1, 1));
+  if (!_TryReusingStation(context))
+  {
+    _BuildNewStation(context);
+  }
 }
 
 function ProvideStationAction::_Undo(context)
@@ -63,6 +67,55 @@ function ProvideStationAction::_OnError(context)
   AILog.Info("Excluding " + AIIndustry.GetName(this.industryId) + " from possible industry list");
   unusableIndustries[this.industryId] <- true
   PersistentStorage.SaveUnusableIndustries(unusableIndustries);
+}
+
+// Copied from SuperLib, as calling this function would result in strange error with wrong number of parameters.
+/*static*/ function ProvideStationAction::_IsCargoAcceptedByIndustry(station_id, cargo_id, industry_id)
+{
+	local max_coverage_radius = SuperLib.Station.GetMaxCoverageRadius(station_id);
+
+	local industry_coverage_tiles = AITileList_IndustryAccepting(industry_id, max_coverage_radius);
+	industry_coverage_tiles.Valuate(SuperLib.Station.IsStation, station_id);
+	industry_coverage_tiles.KeepValue(1);
+
+	return !industry_coverage_tiles.IsEmpty() && SuperLib.Station.IsCargoAccepted(station_id, cargo_id);
+}
+
+function ProvideStationAction::_TryReusingStation(context)
+{
+  if (isProducer) return false;
+
+  local dropStations = AIStationList(AIStation.STATION_TRUCK_STOP);
+  dropStations.Valuate(ProvideStationAction._IsDropStation);
+  dropStations.KeepValue(1);
+  local isCargoAccepted = function(stationId, cargoId, industryId)
+  {
+    return ProvideStationAction._IsCargoAcceptedByIndustry(stationId, cargoId, industryId) ? 1 : 0;
+  };
+  dropStations.Valuate(ProvideStationAction._IsCargoAcceptedByIndustry, this.cargoId, this.industryId);
+  dropStations.KeepValue(1);
+  dropStations.Valuate(RoadHelpers.IncomingTrucksCount);
+  dropStations.KeepBelowValue(6);
+  dropStations.Sort(AIList.SORT_BY_VALUE, true);
+  if (dropStations.IsEmpty()) return false;
+
+  local station = dropStations.Begin();
+  local stationTile = AIStation.GetLocation(station);
+  context.rawset(this.stationTileKey, stationTile);
+  context.rawset(this.stationTileKey + "entrance", stationTile + AIMap.GetTileIndex(-1, -1));
+  this.stationName = StationName.IndustryShortName(this.industryId) + " DROPS";
+  StationName.RenameStation(station, this.stationName);
+  return true;
+}
+
+function ProvideStationAction::_BuildNewStation(context)
+{
+  AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
+  local topLeftTile = _FindStationRectNearIndustry();
+  context.rawset(this.stationTileKey + "entrance", topLeftTile);
+  local roadVehicleType = AIRoad.GetRoadVehicleTypeForCargo(cargoId);
+  _BuildRoroStation3x3(topLeftTile, roadVehicleType);
+  context.rawset(this.stationTileKey, topLeftTile + AIMap.GetTileIndex(1, 1));
 }
 
 function ProvideStationAction::_AddToAll(tileList, tile)
@@ -172,7 +225,7 @@ function ProvideStationAction::_BuildTerminusStation(stationTile, entranceTile, 
     throw "Building a station '" + this.stationName + "' at (" + SuperLib.Tile.GetTileString(stationTile) + ") failed: " + AIError.GetLastErrorString()
   }
   local stationId = AIStation.GetStationID(stationTile);
-  _RenameStation(stationId);
+  StationName.RenameStation(stationId, this.stationName);
 }
 
 function ProvideStationAction::_BuildRoroStation3x3(topLeftTile, roadVehicleType)
@@ -196,25 +249,19 @@ function ProvideStationAction::_BuildRoroStation3x3(topLeftTile, roadVehicleType
   RoadHelpers.BuildRoad(topLeftTile + AIMap.GetTileIndex(0, 2), stationTile2);
   RoadHelpers.BuildRoad(stationTile2, stationTile2 + AIMap.GetTileIndex(1, 0));
   local stationId = AIStation.GetStationID(stationTile1);
-  _RenameStation(stationId);
+  StationName.RenameStation(stationId, this.stationName);
 }
 
-function ProvideStationAction::_RenameStation(stationId)
+function ProvideStationAction::_IsDropStation(station_id)
 {
-  local i = 1;
-  local newStationName = this.stationName;
-  AILog.Info("Trying to rename station to " + newStationName);
-  local success = false;
-  do
+  // Check if station has any cargo rating.
+  local cargos = AICargoList();
+  local hasCargoRating = function(cargoId, stationId)
   {
-    success = AIBaseStation.SetName(stationId, newStationName);
-    if (!success && AIError.GetLastError() != AIError.ERR_NAME_IS_NOT_UNIQUE)
-    {
-      AILog.Warning("Could not rename station: " + AIError.GetLastErrorString());
-      break;
-    }
-    i++;
-    newStationName = this.stationName + " " + i;
-  } while (!success);
+    return AIStation.HasCargoRating(stationId, cargoId) ? 1 : 0;
+  };
+  cargos.Valuate(hasCargoRating, station_id);
+  cargos.KeepValue(1);
+  return cargos.IsEmpty() ? 1 : 0;
 }
 

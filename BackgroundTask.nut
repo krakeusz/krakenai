@@ -11,7 +11,6 @@ class _KrakenAI_BackgroundTask
 {
   function Run();
 
-  function _IncomingPickupTrucks(stationId); // -> AIVehicleList
   function _AdjustVehicleCounts();
   function _AdjustVehicleCountStation(stationId, cargoId);
   function _BuyNewVehiclesIfNeeded(stationId, cargoId);
@@ -104,7 +103,7 @@ function _KrakenAI_BackgroundTask::_SendVehiclesToDepotIfNeeded(stationId, cargo
   local cargoWaiting = AIStation.GetCargoWaiting(stationId, cargoId);
   if (cargoWaiting > 0) { return; }
   if (_CapacitiesIncomingTrucks(stationId, cargoId) < 0.6 * _PredictedMonthlySupply(stationId, cargoId)) { return; }
-  local trucks = _IncomingPickupTrucks(stationId);
+  local trucks = RoadHelpers.IncomingTrucks(stationId);
   if (trucks.Count() < 2) { return; }
 
   // Send only empty trucks to depot
@@ -140,34 +139,9 @@ function _KrakenAI_BackgroundTask::_CloneAndStartVehicle(templateVehicle, templa
 
 function _KrakenAI_BackgroundTask::_CapacitiesIncomingTrucks(stationId, cargoId)
 {
-  local trucks = _IncomingPickupTrucks(stationId);
+  local trucks = RoadHelpers.IncomingTrucks(stationId);
   trucks.Valuate(AIVehicle.GetCapacity, cargoId);
   return _SumValues(trucks);
-}
-
-// Get the list of vehicles that are loading at the station or will load in the near future.
-function _KrakenAI_BackgroundTask::_IncomingPickupTrucks(stationId)
-{
-  local vehicles = AIVehicleList_Station(stationId);
-  local stationTile = AIStation.GetLocation(stationId);
-  local distanceEval = function(vehicleId, stationTile)
-  {
-    return AITile.GetDistanceManhattanToTile(stationTile, AIVehicle.GetLocation(vehicleId));
-  };
-  vehicles.Valuate(distanceEval, stationTile);
-  const STATION_DISTANCE_THRESHOLD = 8;
-  vehicles.RemoveAboveValue(STATION_DISTANCE_THRESHOLD);
-
-  vehicles.Valuate(AIOrder.ResolveOrderPosition, AIOrder.ORDER_CURRENT);
-  // Assuming that first order is pickup order
-  vehicles.KeepValue(TruckOrders.PICKUP_ORDER);
-
-  vehicles.Valuate(AIVehicle.GetState);
-  vehicles.RemoveValue(AIVehicle.VS_STOPPED);
-  vehicles.RemoveValue(AIVehicle.VS_IN_DEPOT);
-  vehicles.RemoveValue(AIVehicle.VS_CRASHED);
-  vehicles.RemoveValue(AIVehicle.VS_BROKEN);
-  return vehicles;
 }
 
 function _KrakenAI_BackgroundTask::_PredictedMonthlySupply(stationId, cargoId)
