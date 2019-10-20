@@ -5,7 +5,7 @@ class KrakenAIInfo extends AIInfo {
   function GetName()        { return "KrakenAI"; }
   function GetDescription() { return "An AI that tries to be smart using trucks."; }
   function GetVersion()     { return 1; }
-  function GetDate()        { return "2017-12-09"; }
+  function GetDate()        { return "2019-10-20"; }
   function CreateInstance() { return "KrakenAI"; }
   function GetShortName()   { return "KRAI"; }
   function GetAPIVersion()  { return "1.3"; }
