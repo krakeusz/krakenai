@@ -1,5 +1,5 @@
 require("Action.nut")
-require("../RoadHelpers.nut")
+require("RoadHelpers.nut")
 //import("pathfinder.road", "RoadPathFinder", 3);
 import("util.superlib", "SuperLib", 40)
 

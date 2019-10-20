@@ -1,6 +1,6 @@
 require("Action.nut")
-require("../RoadHelpers.nut")
-require("../TruckOrders.nut")
+require("RoadHelpers.nut")
+require("TruckOrders.nut")
 
 class BuildTrucksAction extends Action
 {

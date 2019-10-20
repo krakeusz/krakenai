@@ -1,5 +1,5 @@
 require("Action.nut")
-require("../BackgroundTask.nut")
+require("BackgroundTask.nut")
 
 class WaitForFirstTruckAtPickupAction extends Action
 {

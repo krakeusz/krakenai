@@ -1,7 +1,7 @@
 import("util.superlib", "SuperLib", 40);
 
 require("BackgroundTask.nut");
-require("plans/PlanChooser.nut");
+require("PlanChooser.nut");
 require("PersistentStorageWorker.nut");
 require("PersistentStorage.nut");
 
