@@ -103,8 +103,6 @@ function ProvideStationAction::_TryReusingStation(context)
   local stationTile = AIStation.GetLocation(station);
   context.rawset(this.stationTileKey, stationTile);
   context.rawset(this.stationTileKey + "entrance", stationTile + AIMap.GetTileIndex(-1, -1));
-  this.stationName = StationName.IndustryShortName(this.industryId) + " DROPS";
-  StationName.RenameStation(station, this.stationName);
   return true;
 }
 
@@ -224,8 +222,6 @@ function ProvideStationAction::_BuildTerminusStation(stationTile, entranceTile, 
   {
     throw "Building a station '" + this.stationName + "' at (" + SuperLib.Tile.GetTileString(stationTile) + ") failed: " + AIError.GetLastErrorString()
   }
-  local stationId = AIStation.GetStationID(stationTile);
-  StationName.RenameStation(stationId, this.stationName);
 }
 
 function ProvideStationAction::_BuildRoroStation3x3(topLeftTile, roadVehicleType)
@@ -248,8 +244,6 @@ function ProvideStationAction::_BuildRoroStation3x3(topLeftTile, roadVehicleType
   RoadHelpers.BuildRoad(stationTile1, stationTile1 + AIMap.GetTileIndex(1, 0));
   RoadHelpers.BuildRoad(topLeftTile + AIMap.GetTileIndex(0, 2), stationTile2);
   RoadHelpers.BuildRoad(stationTile2, stationTile2 + AIMap.GetTileIndex(1, 0));
-  local stationId = AIStation.GetStationID(stationTile1);
-  StationName.RenameStation(stationId, this.stationName);
 }
 
 function ProvideStationAction::_IsDropStation(station_id)
