@@ -1,5 +1,5 @@
 require("Action.nut")
-require("RoadHelpers.nut")
+require("../road_helpers/RoadHelpers.nut")
 
 class ProvideDepotAction extends Action
 {

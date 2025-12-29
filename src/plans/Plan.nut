@@ -1,4 +1,4 @@
-require("Action.nut");
+require("../actions/Action.nut");
 
 class Plan
 {

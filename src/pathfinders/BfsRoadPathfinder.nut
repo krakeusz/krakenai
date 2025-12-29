@@ -1,4 +1,4 @@
-require("FifoQueue.nut")
+require("./FifoQueue.nut")
 
 // Searches the roads, starting from one tile, until a suitable tile is found.
 // Returns the closest suitable tile found.

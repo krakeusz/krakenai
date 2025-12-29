@@ -1,4 +1,4 @@
-require("Settings.nut")
+require("src/Settings.nut")
 
 class KrakenAIInfo extends AIInfo {
   function GetAuthor()      { return "Mateusz 'krakeusz' Krakowiak"; }

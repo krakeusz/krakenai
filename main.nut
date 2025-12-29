@@ -1,9 +1,9 @@
 import("util.superlib", "SuperLib", 40);
 
-require("BackgroundTask.nut");
-require("PlanChooser.nut");
-require("PersistentStorageWorker.nut");
-require("PersistentStorage.nut");
+require("src/BackgroundTask.nut");
+require("src/plans/PlanChooser.nut");
+require("src/game/PersistentStorageWorker.nut");
+require("src/game/PersistentStorage.nut");
 
 class KrakenAI extends AIController
 {

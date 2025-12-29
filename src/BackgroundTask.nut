@@ -1,6 +1,6 @@
-require("BfsRoadPathfinder.nut")
-require("RoadHelpers.nut")
-require("TruckOrders.nut")
+require("pathfinders/BfsRoadPathfinder.nut")
+require("road_helpers/RoadHelpers.nut")
+require("road_helpers/TruckOrders.nut")
 
 import("util.superlib", "SuperLib", 40);
 
