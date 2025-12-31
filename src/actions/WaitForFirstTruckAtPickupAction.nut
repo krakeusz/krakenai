@@ -28,6 +28,7 @@ function WaitForFirstTruckAtPickupAction::Name(context)
 function WaitForFirstTruckAtPickupAction::_Do(context)
 {
   local stationId = AIStation.GetStationID(context.rawget(this.stationTileKey));
+  local timeoutDate = AIDate.GetCurrentDate() + 90; // 90 days timeout
   while(true)
   {
     // We wait until the station has cargo rating.
@@ -36,6 +37,13 @@ function WaitForFirstTruckAtPickupAction::_Do(context)
     {
       break;
     }
+    if (AIDate.GetCurrentDate() > timeoutDate)
+    {
+      // Eg. the industry might have closed, or the AI has just been restarted and the new AI chose a secondary industry.
+      AILog.Warning("Timeout waiting for first truck at pickup station " + this.stationName + ".");
+      throw "Timeout waiting for first truck at pickup station " + this.stationName + ".";
+    }
+
     KrakenAI.BackgroundTask.Run();
     AILog.Info(Name(context));
     AIController.Sleep(50);

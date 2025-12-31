@@ -80,13 +80,20 @@ function _KrakenAI_BackgroundTask::_BuyNewVehiclesIfNeeded(stationId, cargoId)
 {
   if (SuperLib.Vehicle.GetVehiclesLeft(AIVehicle.VT_ROAD) <= 0) { return; }
   local cargoWaiting = AIStation.GetCargoWaiting(stationId, cargoId);
-  if (cargoWaiting < 50) { return; }
-  if (_CapacitiesIncomingTrucks(stationId, cargoId) > 0.2 * _PredictedMonthlySupply(stationId, cargoId)) { return; }
+
+  // if (cargoWaiting < 50) { return; }
+  // if (_CapacitiesIncomingTrucks(stationId, cargoId) > 0.2 * _PredictedMonthlySupply(stationId, cargoId)) { return; }
 
   local otherTrucks = AIVehicleList_Station(stationId);
   local templateTruck = otherTrucks.Begin();
   local templateEngine = AIVehicle.GetEngineType(templateTruck);
-  local capacity = AIEngine.GetCapacity(templateEngine);
+  local truckCapacity = AIEngine.GetCapacity(templateEngine);
+  // Use a square root or logarithm to reduce number of trucks bought at once.
+  // Otherwise, if we're buying for a long time because of low funds,
+  // by the time the station is empty we'll be in the middle of purchasing.
+  local trucksToBuy = ceil(sqrt(cargoWaiting / truckCapacity));
+  if (trucksToBuy < 1) { return; }
+  
   local templateGroup = AIVehicle.GetGroupID(templateTruck);
   local depotLocation = _FindNearestDepot(stationId);
   if (depotLocation == null)
@@ -94,32 +101,42 @@ function _KrakenAI_BackgroundTask::_BuyNewVehiclesIfNeeded(stationId, cargoId)
     AILog.Warning("Cannot find any depots near station " + AIStation.GetName(stationId) + ". This is probably a bug.");
     return;
   }
-  _CloneAndStartVehicle(templateTruck, templateGroup, depotLocation);
-  AILog.Info("Cloned a truck for station " + AIStation.GetName(stationId));
+
+  for (local i = 0; i < trucksToBuy; i++)
+  {
+    _CloneAndStartVehicle(templateTruck, templateGroup, depotLocation);
+    AILog.Info("Cloned a truck for station " + AIStation.GetName(stationId));
+  }
 }
 
 function _KrakenAI_BackgroundTask::_SendVehiclesToDepotIfNeeded(stationId, cargoId)
 {
-  local cargoWaiting = AIStation.GetCargoWaiting(stationId, cargoId);
-  if (cargoWaiting > 0) { return; }
-  if (_CapacitiesIncomingTrucks(stationId, cargoId) < 0.6 * _PredictedMonthlySupply(stationId, cargoId)) { return; }
-  local trucks = RoadHelpers.IncomingTrucks(stationId);
-  if (trucks.Count() < 2) { return; }
-
-  // Send only empty trucks to depot
+  // Get the percentage of vehicles which have 0 velocity and are empty. These are loading at the station.
+  local trucks = AIVehicleList_Station(stationId);
+  trucks.Valuate(AIVehicle.GetCurrentSpeed);
+  trucks.KeepValue(0);
   trucks.Valuate(AIVehicle.GetCargoLoad, cargoId);
   trucks.RemoveAboveValue(0);
+  // Exclude trucks that are already going to depot
+  trucks.Valuate(TruckOrders.IsStoppingAtDepot);
+  trucks.RemoveValue(1);
   if (trucks.IsEmpty()) { return; }
+  AILog.Info("Station " + AIStation.GetName(stationId) + " has " + trucks.Count() + " idle loading truck(s).");
   
-  local truckToStop = trucks.Begin();
-  TruckOrders.StopInDepot(truckToStop);
-  AILog.Info("Sent truck " + truckToStop + " to stop in depot, for station " + AIStation.GetName(stationId));
+  local vehiclesToStop = SuperLib.Helper.Max(trucks.Count() - 6, 0); // keep some trucks at station
+
+  for (local truckToStop = 0; truckToStop < vehiclesToStop; truckToStop++)
+  {
+    local truckId = trucks.GetValue(truckToStop); // Get the actual vehicleId
+    TruckOrders.StopInDepot(truckId); // Use the correct vehicleId
+    AILog.Info("Sent truck " + truckId + " to stop in depot, for station " + AIStation.GetName(stationId));
+  }
 }
 
 function _KrakenAI_BackgroundTask::_AdjustVehicleCountStation(stationId, cargoId)
 {
-  _BuyNewVehiclesIfNeeded(stationId, cargoId);
   _SendVehiclesToDepotIfNeeded(stationId, cargoId);
+  _BuyNewVehiclesIfNeeded(stationId, cargoId);
 }
 
 // Return id of nearest depot's tile (BFS search over roads), or null if not found

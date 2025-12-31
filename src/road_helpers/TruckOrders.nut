@@ -2,6 +2,7 @@ class TruckOrders
 {
   static function SetDefaultTruckOrders(vehicleId, station1Tile, station2Tile, depot1Tile, depot2Tile);
   static function StopInDepot(vehicleId);
+  static function IsStoppingAtDepot(vehicleId);
 
   static PICKUP_ORDER = 0;
   static STOP_IN_DEPOT_ORDER = 5;
@@ -25,4 +26,10 @@ function TruckOrders::SetDefaultTruckOrders(vehicleId, station1Tile, station2Til
 function TruckOrders::StopInDepot(vehicleId)
 {
   AIOrder.SkipToOrder(vehicleId, TruckOrders.STOP_IN_DEPOT_ORDER);
+}
+
+function TruckOrders::IsStoppingAtDepot(vehicleId)
+{
+  local currentOrderIndex = AIOrder.ResolveOrderPosition(vehicleId, AIOrder.ORDER_CURRENT);
+  return currentOrderIndex == TruckOrders.STOP_IN_DEPOT_ORDER;
 }
