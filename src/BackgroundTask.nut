@@ -1,6 +1,7 @@
 require("pathfinders/BfsRoadPathfinder.nut")
 require("road_helpers/RoadHelpers.nut")
 require("road_helpers/TruckOrders.nut")
+require("game/PersistentStorage.nut")
 
 import("util.superlib", "SuperLib", 40);
 
@@ -18,6 +19,9 @@ class _KrakenAI_BackgroundTask
   function _FindNearestDepot(stationId);
   function _CapacitiesIncomingTrucks(stationId, cargoId);
   function _PredictedMonthlySupply(stationId, cargoId);
+  function _AreVehiclesSlowOnAverage(stationId, cargoId);
+  function _WereVehiclesSlowLately(stationId, cargoId);
+  function _SaveThatVehiclesAreSlow(stationId, cargoId);
   function _CloneAndStartVehicle(templateTruck, templateGroup, depotLocation);
   function _GetSupplierIndustries(stationId, cargoId);
   function _SumValues(aiList);
@@ -81,9 +85,6 @@ function _KrakenAI_BackgroundTask::_BuyNewVehiclesIfNeeded(stationId, cargoId)
   if (SuperLib.Vehicle.GetVehiclesLeft(AIVehicle.VT_ROAD) <= 0) { return; }
   local cargoWaiting = AIStation.GetCargoWaiting(stationId, cargoId);
 
-  // if (cargoWaiting < 50) { return; }
-  // if (_CapacitiesIncomingTrucks(stationId, cargoId) > 0.2 * _PredictedMonthlySupply(stationId, cargoId)) { return; }
-
   local otherTrucks = AIVehicleList_Station(stationId);
   local templateTruck = otherTrucks.Begin();
   local templateEngine = AIVehicle.GetEngineType(templateTruck);
@@ -112,7 +113,7 @@ function _KrakenAI_BackgroundTask::_BuyNewVehiclesIfNeeded(stationId, cargoId)
 function _KrakenAI_BackgroundTask::_SendVehiclesToDepotIfNeeded(stationId, cargoId)
 {
   // Get the percentage of vehicles which have 0 velocity and are empty. These are loading at the station.
-  local trucks = AIVehicleList_Station(stationId);
+  local trucks = RoadHelpers.IncomingTrucks(stationId);
   trucks.Valuate(AIVehicle.GetCurrentSpeed);
   trucks.KeepValue(0);
   trucks.Valuate(AIVehicle.GetCargoLoad, cargoId);
@@ -125,17 +126,84 @@ function _KrakenAI_BackgroundTask::_SendVehiclesToDepotIfNeeded(stationId, cargo
   
   local vehiclesToStop = SuperLib.Helper.Max(trucks.Count() - 6, 0); // keep some trucks at station
 
-  for (local truckToStop = 0; truckToStop < vehiclesToStop; truckToStop++)
+  for (local truckId = trucks.Begin(); trucks.HasItem(truckId) && vehiclesToStop > 0; truckId = trucks.Next(), vehiclesToStop--)
   {
-    local truckId = trucks.GetValue(truckToStop); // Get the actual vehicleId
-    TruckOrders.StopInDepot(truckId); // Use the correct vehicleId
+    TruckOrders.StopInDepot(truckId);
     AILog.Info("Sent truck " + truckId + " to stop in depot, for station " + AIStation.GetName(stationId));
   }
+}
+
+function _KrakenAI_BackgroundTask::_WereVehiclesSlowLately(stationId, cargoId)
+{
+  local cloggedIndustries = PersistentStorage.LoadCloggedIndustries();
+  local key = stationId.tostring() + "_" + cargoId.tostring();
+  if (!(key in cloggedIndustries))
+  {
+    return false;
+  }
+  local lastTimeClogged = cloggedIndustries[key];
+  const CLOGGED_TIME_THRESHOLD = 60; // days
+  local daysPassed = AIDate.GetCurrentDate() - lastTimeClogged;
+  return 0 <= daysPassed && daysPassed <= CLOGGED_TIME_THRESHOLD;
+}
+
+function _KrakenAI_BackgroundTask::_SaveThatVehiclesAreSlow(stationId, cargoId)
+{
+  local cloggedIndustries = PersistentStorage.LoadCloggedIndustries();
+  local key = stationId.tostring() + "_" + cargoId.tostring();
+  cloggedIndustries[key] <- AIDate.GetCurrentDate();
+  PersistentStorage.SaveCloggedIndustries(cloggedIndustries);
+}
+
+function _KrakenAI_BackgroundTask::_AreVehiclesSlowOnAverage(stationId, cargoId)
+{
+  local trucks = AIVehicleList_Station(stationId);
+  // Exclude irrelevant trucks
+  trucks.Valuate(TruckOrders.IsStoppingAtDepot);
+  trucks.RemoveValue(1);
+  trucks.Valuate(AIVehicle.GetState);
+  trucks.RemoveValue(AIVehicle.VS_AT_STATION);
+  trucks.RemoveValue(AIVehicle.VS_IN_DEPOT);
+
+  if (trucks.IsEmpty()) { return false; }
+  if (trucks.Count() < 5)
+  {
+    return false;
+  }
+  local totalSpeed = 0;
+  local vehicleCount = 0;
+  local totalMaxSpeed = 0;
+  for (local truckId = trucks.Begin(); !trucks.IsEnd(); truckId = trucks.Next())
+  {
+    local speed = AIVehicle.GetCurrentSpeed(truckId);
+    totalSpeed += speed;
+    local maxSpeed = AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(truckId));
+    totalMaxSpeed += maxSpeed;
+    vehicleCount += 1;
+  }
+  local averageSpeed = totalSpeed / vehicleCount;
+  local averageMaxSpeed = totalMaxSpeed / vehicleCount;
+  AILog.Info("Average speed of trucks for station " + AIStation.GetName(stationId) + " of cargo " + AICargo.GetName(cargoId) + " is " + averageSpeed + " out of " + averageMaxSpeed);
+
+  return averageSpeed < 0.7 * averageMaxSpeed;
 }
 
 function _KrakenAI_BackgroundTask::_AdjustVehicleCountStation(stationId, cargoId)
 {
   _SendVehiclesToDepotIfNeeded(stationId, cargoId);
+
+
+  if (_AreVehiclesSlowOnAverage(stationId, cargoId))
+  {
+    AILog.Warning("Not buying new trucks for station " + AIStation.GetName(stationId) + " because existing trucks are slow on average.");
+    _SaveThatVehiclesAreSlow(stationId, cargoId);
+    return;
+  }
+  if (_WereVehiclesSlowLately(stationId, cargoId))
+  {
+    AILog.Warning("Not buying new trucks for station " + AIStation.GetName(stationId) + " because vehicles were slow lately.");
+    return;
+  }
   _BuyNewVehiclesIfNeeded(stationId, cargoId);
 }
 

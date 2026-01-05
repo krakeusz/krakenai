@@ -4,7 +4,8 @@ class PersistentStorageWorker
   {
     table =
     {
-      unusableIndustries = {}
+      unusableIndustries = {},
+      cloggedIndustries = {}
     }
   }
 
@@ -13,6 +14,8 @@ class PersistentStorageWorker
 
   function _LoadUnusableIndustries();
   function _SaveUnusableIndustries(tab);
+  function _LoadCloggedIndustries();
+  function _SaveCloggedIndustries(tab);
 
   table = null;
 }
@@ -39,4 +42,18 @@ function PersistentStorageWorker::_LoadUnusableIndustries()
 function PersistentStorageWorker::_SaveUnusableIndustries(tab)
 {
   table.unusableIndustries = tab;
+}
+
+function PersistentStorageWorker::_LoadCloggedIndustries()
+{
+  if (!(table.rawin("cloggedIndustries")))
+  {
+    table.cloggedIndustries = {}
+  }
+  return table.cloggedIndustries;
+}
+
+function PersistentStorageWorker::_SaveCloggedIndustries(tab)
+{
+  table.cloggedIndustries = tab;
 }
