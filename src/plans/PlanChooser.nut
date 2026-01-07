@@ -17,6 +17,22 @@ class PlanChooser
   static minTrucksLeftToBuildRoute = 50;
 }
 
+class RoadConnectionPlanData
+{
+  producer = -1;
+  consumer = -1;
+  cargo = -1;
+  eval = -1;
+
+  constructor(producer, consumer, cargo, eval)
+  {
+    this.producer = producer;
+    this.consumer = consumer;
+    this.cargo = cargo;
+    this.eval = eval;
+  }
+}
+
 function PlanChooser::NextPlan()
 {
   if (SuperLib.Vehicle.GetVehiclesLeft(AIVehicle.VT_ROAD) >= minTrucksLeftToBuildRoute)
@@ -39,13 +55,52 @@ function PlanChooser::IsCargoSuppliedByIndustry(station_id, cargo_id, industry_i
 	return !industry_coverage_tiles.IsEmpty() && SuperLib.Industry.IsCargoProduced(industry_id, cargo_id);
 }
 
+function PlanChooser::GetWeightedRandomPlan(plans /* array[RoadConnectionPlanData] */, sortedEvals /* AIList[index(int), eval(int)] */)
+{
+  if (plans.len() == 0)
+  {
+    AILog.Warning("Could not find any possible road connections. Maybe all industries are served, or no trucks can carry the cargos produced?");
+    return null;
+  }
+  if (plans.len() != sortedEvals.Count())
+  {
+    AILog.Error("Error in GetWeightedRandomPlan logic: plans.len() != sortedEvals.len()");
+    return null;
+  }
+  AILog.Info("Found " + plans.len() + " possible road connections. Best ones:");
+  local plansToChoose = min(5, plans.len());
+  for (local i = 0, j = sortedEvals.Begin(); i < plansToChoose && ! sortedEvals.IsEnd(); i++, j = sortedEvals.Next())
+  {
+    local plan = plans[j];
+    AILog.Info("  From " + AIIndustry.GetName(plan.producer) +
+               " to " + AIIndustry.GetName(plan.consumer) +
+               " with cargo " + AICargo.GetCargoLabel(plan.cargo) +
+               " (eval: " + plan.eval + ")");
+  }
+  // every plan in the top 5 has weight 5 - its index
+  local totalWeights = plansToChoose * (plansToChoose + 1) / 2;
+  local random = AIBase.RandRange(totalWeights);
+  for (local i = 0, j = sortedEvals.Begin(); i < plansToChoose && ! sortedEvals.IsEnd(); i++, j = sortedEvals.Next())
+  {
+    local weight = plansToChoose - i;
+    if (random < weight)
+    {
+      AILog.Info("Selected plan from " + AIIndustry.GetName(plans[j].producer) +
+                 " to " + AIIndustry.GetName(plans[j].consumer) +
+                 " with cargo " + AICargo.GetCargoLabel(plans[j].cargo));
+      return plans[j];
+    }
+    random -= weight;
+  }
+
+  AILog.Error("Error in GetWeightedRandomPlan logic: random selection failed.");
+  return null;
+}
+
 function PlanChooser::NextRoadConnectionPlan()
 {
   local allIndustries = AIIndustryList();
-  local bestEval = -1;
-  local bestProducer = -1;
-  local bestCargo = -1;
-  local bestConsumer = -1;
+  local allPlans = [];
   local unusableIndustries = PersistentStorage.LoadUnusableIndustries();
   for (local industryId = allIndustries.Begin(); !allIndustries.IsEnd(); industryId = allIndustries.Next())
   {
@@ -57,25 +112,20 @@ function PlanChooser::NextRoadConnectionPlan()
     for (local cargoId = cargos.Begin(); !cargos.IsEnd(); cargoId = cargos.Next())
     {
       local consumerAndEval = _CargoIndustryBestConsumerAndEval(cargoId, industryId);
-      if (consumerAndEval != null && consumerAndEval.eval > bestEval)
+      if (consumerAndEval != null)
       {
-        bestEval = consumerAndEval.eval;
-        bestProducer = industryId;
-        bestCargo = cargoId;
-        bestConsumer = consumerAndEval.consumerId;
+        allPlans.push(RoadConnectionPlanData(industryId, consumerAndEval.consumerId, cargoId, consumerAndEval.eval));
       }
     }
   }
-
-  if (bestEval < 0)
+  local allEvals = AIList();
+  for (local i = 0; i < allPlans.len(); i++)
   {
-    AILog.Warning("Could not find any possible road connections.");
-    return null;
+    allEvals.AddItem(i, allPlans[i].eval);
   }
-  AILog.Info("Best connection is from " + AIIndustry.GetName(bestProducer) +
-             " to " + AIIndustry.GetName(bestConsumer) +
-             " with cargo " + AICargo.GetCargoLabel(bestCargo));
-  return RoadConnectionPlan(bestProducer, bestConsumer, bestCargo);
+  allEvals.Sort(AIList.SORT_BY_VALUE, false); // descending
+  local bestPlan = GetWeightedRandomPlan(allPlans, allEvals);
+  return bestPlan != null ? RoadConnectionPlan(bestPlan.producer, bestPlan.consumer, bestPlan.cargo) : null;
 }
 
 function PlanChooser::_ReasonableCargosToPickup(industryId)

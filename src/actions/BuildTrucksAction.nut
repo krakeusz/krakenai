@@ -37,7 +37,7 @@ class BuildTrucksAction extends Action
 
 function BuildTrucksAction::Name(context)
 {
-  return "Building at most " + this.nTrucks + " trucks for " + context.shortConnectionName;
+  return "Building at most " + this.nTrucks + " trucks for " + context.connectionName;
 }
 
 function BuildTrucksAction::_Do(context)

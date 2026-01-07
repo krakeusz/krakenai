@@ -21,10 +21,10 @@ class RoadConnectionPlan extends Plan
     context.shortConnectionName <- AICargo.GetCargoLabel(cargoId) + " " + StationName.IndustryShortName(producerId) + "-" + StationName.IndustryShortName(consumerId);
 
     local producerTileKey = "producerStationTile";
-    local producerStationName = StationName.IndustryShortName(producerId) + " " + AICargo.GetCargoLabel(cargoId) + " PICKUP";
+    local producerStationName = AIIndustry.GetName(producerId) + " " + AICargo.GetName(cargoId) + " PICKUP";
     _AddAction(ProvideStationAction(context, producerId, cargoId, producerTileKey, 1, producerStationName));
     local consumerTileKey = "consumerStationTile";
-    local consumerStationName = StationName.IndustryShortName(consumerId) + " " + AICargo.GetCargoLabel(cargoId) + " DROP";
+    local consumerStationName = AIIndustry.GetName(consumerId) + " " + AICargo.GetName(cargoId) + " DROP";
     _AddAction(ProvideStationAction(context, consumerId, cargoId, consumerTileKey, 0, consumerStationName));
     _AddAction(FindAndBuildRoadAction(context, producerTileKey + "entrance", consumerTileKey + "entrance"));
     local depot1Name = producerStationName + " depot";
