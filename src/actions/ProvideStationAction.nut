@@ -1,7 +1,7 @@
 require("Action.nut")
 require("../road_helpers/RoadHelpers.nut")
 require("../game/PersistentStorage.nut")
-require("../StationName.nut")
+require("../names/StationName.nut")
 
 import("util.superlib", "SuperLib", 40);
 

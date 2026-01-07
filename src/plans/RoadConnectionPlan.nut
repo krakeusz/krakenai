@@ -5,7 +5,7 @@ require("../actions/FindAndBuildRoadAction.nut");
 require("../actions/ProvideDepotAction.nut");
 require("../actions/ProvideStationAction.nut");
 require("../actions/WaitForFirstTruckAtPickupAction.nut");
-require("../StationName.nut");
+require("../names/StationName.nut");
 
 class RoadConnectionPlan extends Plan
 {

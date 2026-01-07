@@ -4,6 +4,7 @@ require("src/BackgroundTask.nut");
 require("src/plans/PlanChooser.nut");
 require("src/game/PersistentStorageWorker.nut");
 require("src/game/PersistentStorage.nut");
+require("src/names/PirateCompanyName.nut");
 
 class KrakenAI extends AIController
 {
@@ -21,12 +22,7 @@ class KrakenAI extends AIController
 
 function KrakenAI::SetCompanyInfo()
 {
-  if (!AICompany.SetName("KrakenAI")) {
-    local i = 2;
-    while (!AICompany.SetName("KrakenAI #" + i)) {
-      i++;
-    }
-  }
+  PirateCo().SetCompanyName();
 }
 
 function KrakenAI::Start()
