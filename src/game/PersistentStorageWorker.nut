@@ -1,11 +1,14 @@
+require("../containers/BinaryRelation.nut");
+
 class PersistentStorageWorker
 {
   constructor()
   {
     table =
     {
-      unusableIndustries = {},
-      cloggedIndustries = {}
+      unusableIndustries = {}, // industryId -> true if the industry is unusable
+      cloggedIndustries = {}, // industryId -> timestamp when it got clogged
+      industryStations = {}, // industryId -> array of our stationIds that are servicing it. Public API uses BinaryRelation as a wrapper.
     }
   }
 
@@ -16,6 +19,8 @@ class PersistentStorageWorker
   function _SaveUnusableIndustries(tab);
   function _LoadCloggedIndustries();
   function _SaveCloggedIndustries(tab);
+  function _LoadIndustryStations();
+  function _SaveIndustryStations(tab);
 
   table = null;
 }
@@ -56,4 +61,18 @@ function PersistentStorageWorker::_LoadCloggedIndustries()
 function PersistentStorageWorker::_SaveCloggedIndustries(tab)
 {
   table.cloggedIndustries = tab;
+}
+
+function PersistentStorageWorker::_LoadIndustryStations()
+{
+  if (!(table.rawin("industryStations")))
+  {
+    table.industryStations = {}
+  }
+  return BinaryRelation(table.industryStations);
+}
+
+function PersistentStorageWorker::_SaveIndustryStations(tab)
+{
+  table.industryStations = tab.getData();
 }

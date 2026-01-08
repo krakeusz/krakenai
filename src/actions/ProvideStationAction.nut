@@ -81,6 +81,13 @@ function ProvideStationAction::_OnError(context)
 	return !industry_coverage_tiles.IsEmpty() && SuperLib.Station.IsCargoAccepted(station_id, cargo_id);
 }
 
+function ProvideStationAction::SaveIndustryStationRelation(stationId)
+{
+  local industryStations = PersistentStorage.LoadIndustryStations();
+  industryStations.addRelation(this.industryId, stationId);
+  PersistentStorage.SaveIndustryStations(industryStations);
+}
+
 function ProvideStationAction::_TryReusingStation(context)
 {
   if (isProducer) return false;
@@ -103,6 +110,7 @@ function ProvideStationAction::_TryReusingStation(context)
   local stationTile = AIStation.GetLocation(station);
   context.rawset(this.stationTileKey, stationTile);
   context.rawset(this.stationTileKey + "entrance", stationTile + AIMap.GetTileIndex(-1, -1));
+  SaveIndustryStationRelation(station);
   return true;
 }
 
@@ -112,7 +120,8 @@ function ProvideStationAction::_BuildNewStation(context)
   local topLeftTile = _FindStationRectNearIndustry();
   context.rawset(this.stationTileKey + "entrance", topLeftTile);
   local roadVehicleType = AIRoad.GetRoadVehicleTypeForCargo(cargoId);
-  _BuildRoroStation3x3(topLeftTile, roadVehicleType);
+  local stationId = _BuildRoroStation3x3(topLeftTile, roadVehicleType);
+  SaveIndustryStationRelation(stationId);
   context.rawset(this.stationTileKey, topLeftTile + AIMap.GetTileIndex(1, 1));
 }
 
@@ -222,6 +231,7 @@ function ProvideStationAction::_BuildTerminusStation(stationTile, entranceTile, 
   {
     throw "Building a station '" + this.stationName + "' at (" + SuperLib.Tile.GetTileString(stationTile) + ") failed: " + AIError.GetLastErrorString()
   }
+  return AIStation.GetStationID(stationTile);
 }
 
 function ProvideStationAction::_BuildRoroStation3x3(topLeftTile, roadVehicleType)
@@ -233,7 +243,7 @@ function ProvideStationAction::_BuildRoroStation3x3(topLeftTile, roadVehicleType
   // .-S-.
   local stationTile1 = topLeftTile + AIMap.GetTileIndex(1, 1);
   local stationTile2 = topLeftTile + AIMap.GetTileIndex(1, 2);
-  RoadHelpers.BuildRoroStation(stationTile2, topLeftTile + AIMap.GetTileIndex(0, 2), roadVehicleType, AIStation.STATION_NEW);
+  local stationId = RoadHelpers.BuildRoroStation(stationTile2, topLeftTile + AIMap.GetTileIndex(0, 2), roadVehicleType, AIStation.STATION_NEW);
   RoadHelpers.BuildRoroStation(stationTile1, topLeftTile + AIMap.GetTileIndex(0, 1), roadVehicleType, AIStation.STATION_JOIN_ADJACENT);
   // long segments
   RoadHelpers.BuildRoad(topLeftTile, topLeftTile + AIMap.GetTileIndex(2, 0));
@@ -244,6 +254,7 @@ function ProvideStationAction::_BuildRoroStation3x3(topLeftTile, roadVehicleType
   RoadHelpers.BuildRoad(stationTile1, stationTile1 + AIMap.GetTileIndex(1, 0));
   RoadHelpers.BuildRoad(topLeftTile + AIMap.GetTileIndex(0, 2), stationTile2);
   RoadHelpers.BuildRoad(stationTile2, stationTile2 + AIMap.GetTileIndex(1, 0));
+  return stationId;
 }
 
 function ProvideStationAction::_IsDropStation(station_id)

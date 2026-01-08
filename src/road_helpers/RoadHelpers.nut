@@ -199,6 +199,7 @@ function RoadHelpers::BuildRoroStation(stationTile, entranceTile, roadVehicleTyp
         throw "Error while building roro station " + AIError.GetLastErrorString()
     }
   }
+  return AIStation.GetStationID(stationTile);
 }
 
 function RoadHelpers::WaitForFundsWithMargin(fundsRequired)

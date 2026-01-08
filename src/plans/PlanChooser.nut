@@ -13,6 +13,7 @@ class PlanChooser
   function _CargoIndustryBestConsumerAndEval(cargoId, industryId);
 
   static function IsCargoSuppliedByIndustry(station_id, cargo_id, industry_id);
+  static function _IsIndustryAlreadyServicedByUs(industryId);
 
   static minTrucksLeftToBuildRoute = 50;
 }
@@ -189,7 +190,16 @@ function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
     local distance = AIIndustry.GetDistanceManhattanToTile(producerId, AIIndustry.GetLocation(consumerId));
     local distanceFactor = 1 - abs(distance - BEST_DISTANCE_TO_DROP) / BEST_DISTANCE_TO_DROP;
     local cargoIncome = AICargo.GetCargoIncome(cargoId, distance, AVG_DAYS);
-    return production * distanceFactor * cargoIncome;
+    local synergyFactor = 1.0;
+    if (PlanChooser._IsIndustryAlreadyServicedByUs(consumerId))
+    {
+      synergyFactor *= 1.2;
+    }
+    if (PlanChooser._IsIndustryAlreadyServicedByUs(producerId))
+    {
+      synergyFactor *= 1.2;
+    }
+    return (production * distanceFactor * cargoIncome * synergyFactor).tointeger();
   };
   consumers.Valuate(consumerEval, cargoId, producerId);
   consumers.Sort(AIList.SORT_BY_VALUE, false); // descending
@@ -199,5 +209,12 @@ function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
   {
     return null; // no reasonable consumers
   }
+ 
   return { consumerId = bestConsumer, eval = bestEval };
+}
+
+
+function PlanChooser::_IsIndustryAlreadyServicedByUs(industryId)
+{
+  return PersistentStorage.LoadIndustryStations().getRelations(industryId).len() > 0;
 }
