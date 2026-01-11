@@ -60,7 +60,7 @@ function RoadHelpers::CloneRoadVehicle(depotTile, templateVehicle)
   local cloneSuccessful = false;
   while (!cloneSuccessful)
   {
-    local shareOrders = false;
+    local shareOrders = true;
     vehicleId = AIVehicle.CloneVehicle(depotTile, templateVehicle, shareOrders);
     if (!AIVehicle.IsValidVehicle(vehicleId))
     {

@@ -52,9 +52,14 @@ function BuildTrucksAction::_Do(context)
   local depot1Tile = context.rawget(this.depot1TileKey);
   local depot2Tile = context.rawget(this.depot2TileKey);
   _AdjustTruckCountToStationSize(context);
+  local firstVehicleId = -1;
   for (local i = 0; i < this.nTrucks; i++)
   {
     local vehicleId = RoadHelpers.BuildRoadVehicle(depot1Tile, engineId);
+    if (i == 0)
+    {
+      firstVehicleId = vehicleId;
+    }
     try
     {
       RoadHelpers.RefitRoadVehicle(vehicleId, cargoId);
@@ -66,10 +71,16 @@ function BuildTrucksAction::_Do(context)
     }
 
     AIGroup.MoveVehicle(groupId, vehicleId);
-
-    local producerTile = context.rawget(this.producerTileKey);
-    local consumerTile = context.rawget(this.consumerTileKey);
-    TruckOrders.SetDefaultTruckOrders(vehicleId, producerTile, consumerTile, depot1Tile, depot2Tile);
+    if (i == 0)
+    {
+      local producerTile = context.rawget(this.producerTileKey);
+      local consumerTile = context.rawget(this.consumerTileKey);
+      TruckOrders.SetDefaultTruckOrders(vehicleId, producerTile, consumerTile, depot1Tile, depot2Tile);
+    }
+    else
+    {
+      AIOrder.ShareOrders(vehicleId, firstVehicleId);
+    }
   }
   return true;
 }
