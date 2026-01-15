@@ -1,4 +1,6 @@
 require("RoadConnectionPlan.nut");
+require("RoadSelloutPlan.nut");
+require("../road_helpers/RoadHelpers.nut");
 require("../game/PersistentStorage.nut");
 
 import("util.superlib", "SuperLib", 40);
@@ -14,6 +16,8 @@ class PlanChooser
 
   static function IsCargoSuppliedByIndustry(station_id, cargo_id, industry_id);
   static function _IsIndustryAlreadyServicedByUs(industryId);
+  static function _IsIndustryCloseToTile(industryId, tileId);
+  static function _RemoveForbiddenDestinations(producerId, consumers);
 
   static minTrucksLeftToBuildRoute = 50;
 }
@@ -36,6 +40,13 @@ class RoadConnectionPlanData
 
 function PlanChooser::NextPlan()
 {
+  local unprofitableRoutes = RoadHelpers.GetUnprofitableTruckGroups();
+  if (unprofitableRoutes.Count() > 0)
+  {
+    AILog.Error("Found " + unprofitableRoutes.Count() + " unprofitable road routes to sell out.");
+    return RoadSelloutPlan(unprofitableRoutes);
+  }
+  AILog.Info("No unprofitable road routes found.");
   if (SuperLib.Vehicle.GetVehiclesLeft(AIVehicle.VT_ROAD) >= minTrucksLeftToBuildRoute)
   {
     return NextRoadConnectionPlan();
@@ -165,16 +176,43 @@ function PlanChooser::_ReasonableCargosToPickup(industryId)
   return cargos;
 }
 
-// For the pair (cargo, producer industry), calculate pair (how good is this combination, best consumer for this combination).
-function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
+function PlanChooser::_RemoveForbiddenDestinations(producerId, consumers)
 {
-  local consumers = AIIndustryList_CargoAccepting(cargoId);
   consumers.RemoveItem(producerId); // not allowing connections from an industry to itself
   local unusableIndustries = PersistentStorage.LoadUnusableIndustries();
   foreach (unusableIndustry,_ in unusableIndustries)
   {
     consumers.RemoveItem(unusableIndustry);
   }
+  local producerTile = AIIndustry.GetLocation(producerId);
+  foreach (tilePair in PersistentStorage.LoadUnprofitableConnections())
+  {
+    if (PlanChooser._IsIndustryCloseToTile(producerId, tilePair.pickupTileId))
+    {
+      // this producer is close to a tile where we had unprofitable connection before
+      // so we skip all consumers close to the drop tile
+      local consumersToRemove = [];
+      for (local consumerId = consumers.Begin(); !consumers.IsEnd(); consumerId = consumers.Next())
+      {
+        if (PlanChooser._IsIndustryCloseToTile(consumerId, tilePair.dropTileId))
+        {
+          consumersToRemove.push(consumerId);
+        }
+      }
+      foreach (consumerId in consumersToRemove)
+      {
+        consumers.RemoveItem(consumerId);
+      }
+    }
+  }
+  return consumers;
+}
+
+// For the pair (cargo, producer industry), calculate pair (how good is this combination, best consumer for this combination).
+function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
+{
+  local consumers = AIIndustryList_CargoAccepting(cargoId);
+  consumers = _RemoveForbiddenDestinations(producerId, consumers);
   if (consumers.IsEmpty())
   {
     return null; // no consumers accepting this cargo
@@ -217,4 +255,12 @@ function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
 function PlanChooser::_IsIndustryAlreadyServicedByUs(industryId)
 {
   return PersistentStorage.LoadIndustryStations().getRelations(industryId).len() > 0;
+}
+
+function PlanChooser::_IsIndustryCloseToTile(industryId, tileId)
+{
+  local industryLocation = AIIndustry.GetLocation(industryId);
+  local distance = AIMap.DistanceManhattan(industryLocation, tileId);
+  const MAX_DISTANCE = 20;
+  return distance <= MAX_DISTANCE;
 }

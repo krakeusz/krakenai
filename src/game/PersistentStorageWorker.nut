@@ -9,6 +9,7 @@ class PersistentStorageWorker
       unusableIndustries = {}, // industryId -> true if the industry is unusable
       cloggedIndustries = {}, // industryId -> timestamp when it got clogged
       industryStations = {}, // industryId -> array of our stationIds that are servicing it. Public API uses BinaryRelation as a wrapper.
+      unprofitableConnections = [] // (pickupStationTile, dropStationTile), ...:  array of pickup and drop station pairs which were marked unprofitable
     }
   }
 
@@ -75,4 +76,18 @@ function PersistentStorageWorker::_LoadIndustryStations()
 function PersistentStorageWorker::_SaveIndustryStations(tab)
 {
   table.industryStations = tab.getData();
+}
+
+function PersistentStorageWorker::_LoadUnprofitableConnections()
+{
+  if (!(table.rawin("unprofitableConnections")))
+  {
+    table.unprofitableConnections = []
+  }
+  return table.unprofitableConnections;
+}
+
+function PersistentStorageWorker::_SaveUnprofitableConnections(arr)
+{
+  table.unprofitableConnections = arr;
 }

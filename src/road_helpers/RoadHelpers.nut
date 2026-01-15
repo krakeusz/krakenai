@@ -26,6 +26,8 @@ class RoadHelpers
 
   // Get the list of vehicles that have the station on their order list and are close to it.
   static function IncomingTrucks(stationId);
+
+  static function IsTruckGroupUnprofitable(groupId);
 }
 
 function RoadHelpers::BuildRoadVehicle(depotTile, engineId)
@@ -297,4 +299,45 @@ function RoadHelpers::IncomingTrucks(stationId)
   vehicles.RemoveValue(AIVehicle.VS_CRASHED);
   vehicles.RemoveValue(AIVehicle.VS_BROKEN);
   return vehicles;
+}
+
+function RoadHelpers::IsTruckGroupUnprofitable(groupId)
+{
+  local truckCount = AIGroup.GetNumVehicles(groupId, AIVehicle.VT_ROAD);
+  if (truckCount == 0)
+  {
+    return false;
+  }
+
+  local trucks = AIVehicleList_Group(groupId);
+  trucks.Valuate(AIVehicle.GetAge);
+  trucks.Sort(AIList.SORT_BY_VALUE, AIList.SORT_DESCENDING);
+  if (trucks.GetValue(trucks.Begin()) < 400) // days
+  {
+    return false;
+  }
+
+  trucks.Valuate(TruckOrders.IsStoppingAtDepot);
+  local sum = 0;
+  for (local item = trucks.Begin(); !trucks.IsEnd(); item = trucks.Next())
+  {
+    sum = sum + trucks.GetValue(item);
+  }
+  if (sum == truckCount)
+  {
+    return false; // All trucks are stopping at depot, meaning that the route is being wound down.
+  }
+
+  local profit = AIGroup.GetProfitThisYear(groupId) + AIGroup.GetProfitLastYear(groupId);
+  if (profit > 0)
+  {
+    return false;
+  }
+  AILog.Info("Group " + AIGroup.GetName(groupId) + " is unprofitable with profit " + profit + " over this and the previous year.");
+  return true;
+}
+
+function RoadHelpers::GetUnprofitableTruckGroups()
+{
+  return AIGroupList(RoadHelpers.IsTruckGroupUnprofitable);
 }

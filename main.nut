@@ -1,6 +1,7 @@
 import("util.superlib", "SuperLib", 40);
 
 require("src/BackgroundTask.nut");
+require("src/events/EventHandler.nut");
 require("src/plans/PlanChooser.nut");
 require("src/game/PersistentStorageWorker.nut");
 require("src/game/PersistentStorage.nut");
@@ -15,7 +16,6 @@ class KrakenAI extends AIController
 
   function SetCompanyInfo();
   function Start();
-  function HandleEvents();
 
   static BackgroundTask = _KrakenAI_BackgroundTask();
 }
@@ -30,9 +30,10 @@ function KrakenAI::Start()
   SetCompanyInfo();
   SuperLib.Money.MaxLoan();
   local planChooser = PlanChooser();
+  local eventHandler = EventHandler();
   while (true)
   {
-    HandleEvents();
+    eventHandler.ProcessWaitingEvents();
     
     local plan = planChooser.NextPlan();
     if (plan != null)
@@ -45,22 +46,6 @@ function KrakenAI::Start()
     }
 
     this.Sleep(50);
-  }
-}
-
-function KrakenAI::HandleEvents()
-{
-  while (AIEventController.IsEventWaiting())
-  {
-    local e = AIEventController.GetNextEvent();
-    switch (e.GetEventType())
-    {
-      case AIEvent.ET_VEHICLE_CRASHED:
-        local ec = AIEventVehicleCrashed.Convert(e);
-        local vid  = ec.GetVehicleID();
-        AILog.Info("We have a crashed vehicle (" + vid + ")");
-        break;
-    }
   }
 }
 

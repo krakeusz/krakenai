@@ -85,7 +85,13 @@ function _KrakenAI_BackgroundTask::_BuyNewVehiclesIfNeeded(stationId, cargoId)
   if (SuperLib.Vehicle.GetVehiclesLeft(AIVehicle.VT_ROAD) <= 0) { return; }
   local cargoWaiting = AIStation.GetCargoWaiting(stationId, cargoId);
 
+  // If all trucks are going to depot, it means the connection is being wound down.
+  // Don't buy new trucks in that case.
   local otherTrucks = AIVehicleList_Station(stationId);
+  otherTrucks.Valuate(TruckOrders.IsStoppingAtDepot);
+  otherTrucks.RemoveValue(1);
+  if (otherTrucks.IsEmpty()) { return; }
+
   local templateTruck = otherTrucks.Begin();
   local templateEngine = AIVehicle.GetEngineType(templateTruck);
   local truckCapacity = AIEngine.GetCapacity(templateEngine);
@@ -195,13 +201,13 @@ function _KrakenAI_BackgroundTask::_AdjustVehicleCountStation(stationId, cargoId
 
   if (_AreVehiclesSlowOnAverage(stationId, cargoId))
   {
-    AILog.Warning("Not buying new trucks for station " + AIStation.GetName(stationId) + " because existing trucks are slow on average.");
+    AILog.Info("Not buying new trucks for station " + AIStation.GetName(stationId) + " because existing trucks are slow on average.");
     _SaveThatVehiclesAreSlow(stationId, cargoId);
     return;
   }
   if (_WereVehiclesSlowLately(stationId, cargoId))
   {
-    AILog.Warning("Not buying new trucks for station " + AIStation.GetName(stationId) + " because vehicles were slow lately.");
+    AILog.Info("Not buying new trucks for station " + AIStation.GetName(stationId) + " because vehicles were slow lately.");
     return;
   }
   _BuyNewVehiclesIfNeeded(stationId, cargoId);

@@ -8,11 +8,13 @@ class PersistentStorage
   static function Save(); // should be called by main only
   static function Load(version, data); // should be called by main only
   static function LoadUnusableIndustries();
-  static function SaveUnusableIndustries();
+  static function SaveUnusableIndustries(tab);
   static function LoadCloggedIndustries();
-  static function SaveCloggedIndustries();
+  static function SaveCloggedIndustries(tab);
   static function LoadIndustryStations();
-  static function SaveIndustryStations();
+  static function SaveIndustryStations(tab);
+  static function LoadUnprofitableConnections();
+  static function SaveUnprofitableConnections(arr);
   static _proxy = PersistentStorageProxy();
 }
 
@@ -54,4 +56,14 @@ function PersistentStorage::LoadIndustryStations()
 function PersistentStorage::SaveIndustryStations(tab)
 {
   return PersistentStorage._proxy._worker._SaveIndustryStations(tab);
+}
+
+function PersistentStorage::LoadUnprofitableConnections()
+{
+  return PersistentStorage._proxy._worker._LoadUnprofitableConnections();
+}
+
+function PersistentStorage::SaveUnprofitableConnections(arr)
+{
+  return PersistentStorage._proxy._worker._SaveUnprofitableConnections(arr);
 }

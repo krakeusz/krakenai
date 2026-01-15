@@ -3,8 +3,11 @@ class TruckOrders
   static function SetDefaultTruckOrders(vehicleId, station1Tile, station2Tile, depot1Tile, depot2Tile);
   static function StopInDepot(vehicleId);
   static function IsStoppingAtDepot(vehicleId);
+  static function GetPickupStationTile(vehicleId);
+  static function GetDropStationTile(vehicleId);
 
   static PICKUP_ORDER = 0;
+  static DROP_ORDER = 1;
   static STOP_IN_DEPOT_ORDER = 5;
 }
 
@@ -25,6 +28,7 @@ function TruckOrders::SetDefaultTruckOrders(vehicleId, station1Tile, station2Til
 
 function TruckOrders::StopInDepot(vehicleId)
 {
+  AIVehicle.SendVehicleToDepot(vehicleId); // in case the original depot from the order is not reachable
   AIOrder.SkipToOrder(vehicleId, TruckOrders.STOP_IN_DEPOT_ORDER);
 }
 
@@ -32,4 +36,14 @@ function TruckOrders::IsStoppingAtDepot(vehicleId)
 {
   local currentOrderIndex = AIOrder.ResolveOrderPosition(vehicleId, AIOrder.ORDER_CURRENT);
   return currentOrderIndex == TruckOrders.STOP_IN_DEPOT_ORDER;
+}
+
+function TruckOrders::GetPickupStationTile(vehicleId)
+{
+  return AIOrder.GetOrderDestination(vehicleId, TruckOrders.PICKUP_ORDER);
+}
+
+function TruckOrders::GetDropStationTile(vehicleId)
+{
+  return AIOrder.GetOrderDestination(vehicleId, TruckOrders.DROP_ORDER);
 }
