@@ -25,7 +25,7 @@ class ProvideStationAction extends Action
   function _Do(context);
   function _Undo(context);
 
-  function _TryReusingStation(context);
+  function _TryReusingDropStation(context);
   function _BuildNewStation(context);
   function _FindStationTileNearIndustry();
   function _FindStationRectNearIndustry();
@@ -34,6 +34,7 @@ class ProvideStationAction extends Action
   function _BuildRoroStation3x3(topLeftTile, roadVehicleType);
 
   static function _IsCargoAcceptedByIndustry(station_id, cargo_id, industry_id);
+  static function _IsCargoSuppliedByIndustry(station_id, cargo_id, industry_id);
   static function _IsDropStation(station_id);
 
 
@@ -51,7 +52,8 @@ function ProvideStationAction::Name(context)
 
 function ProvideStationAction::_Do(context)
 {
-  if (!_TryReusingStation(context))
+  local reuseStationFunction = (isProducer ? ProvideStationAction._TryReusingPickupStation : ProvideStationAction._TryReusingDropStation);
+  if (!reuseStationFunction(context))
   {
     _BuildNewStation(context);
   }
@@ -81,6 +83,17 @@ function ProvideStationAction::_OnError(context)
 	return !industry_coverage_tiles.IsEmpty() && SuperLib.Station.IsCargoAccepted(station_id, cargo_id);
 }
 
+function ProvideStationAction::_IsCargoSuppliedByIndustry(station_id, cargo_id, industry_id)
+{
+  local max_coverage_radius = SuperLib.Station.GetMaxCoverageRadius(station_id);
+
+  local industry_coverage_tiles = AITileList_IndustryProducing(industry_id, max_coverage_radius);
+  industry_coverage_tiles.Valuate(SuperLib.Station.IsStation, station_id);
+  industry_coverage_tiles.KeepValue(1);
+
+  return !industry_coverage_tiles.IsEmpty() && SuperLib.Station.IsCargoSupplied(station_id, cargo_id);
+}
+
 function ProvideStationAction::SaveIndustryStationRelation(stationId)
 {
   local industryStations = PersistentStorage.LoadIndustryStations();
@@ -88,17 +101,13 @@ function ProvideStationAction::SaveIndustryStationRelation(stationId)
   PersistentStorage.SaveIndustryStations(industryStations);
 }
 
-function ProvideStationAction::_TryReusingStation(context)
+function ProvideStationAction::_TryReusingDropStation(context)
 {
   if (isProducer) return false;
 
   local dropStations = AIStationList(AIStation.STATION_TRUCK_STOP);
   dropStations.Valuate(ProvideStationAction._IsDropStation);
   dropStations.KeepValue(1);
-  local isCargoAccepted = function(stationId, cargoId, industryId)
-  {
-    return ProvideStationAction._IsCargoAcceptedByIndustry(stationId, cargoId, industryId) ? 1 : 0;
-  };
   dropStations.Valuate(ProvideStationAction._IsCargoAcceptedByIndustry, this.cargoId, this.industryId);
   dropStations.KeepValue(1);
   dropStations.Valuate(RoadHelpers.IncomingTrucksCount);
@@ -107,6 +116,29 @@ function ProvideStationAction::_TryReusingStation(context)
   if (dropStations.IsEmpty()) return false;
 
   local station = dropStations.Begin();
+  local stationTile = AIStation.GetLocation(station);
+  context.rawset(this.stationTileKey, stationTile);
+  context.rawset(this.stationTileKey + "entrance", stationTile + AIMap.GetTileIndex(-1, -1));
+  SaveIndustryStationRelation(station);
+  return true;
+}
+
+function ProvideStationAction::_TryReusingPickupStation(context)
+{
+  if (!isProducer) return false;
+
+  local pickupStations = AIStationList(AIStation.STATION_TRUCK_STOP);
+  pickupStations.Valuate(ProvideStationAction._IsCargoSuppliedByIndustry, this.cargoId, this.industryId);
+  pickupStations.KeepValue(1);
+  local isStationUsed = function(stationId)
+  {
+    return AIVehicleList_Station(stationId, AIVehicle.VT_ROAD).IsEmpty() ? 0 : 1;
+  };
+  pickupStations.Valuate(isStationUsed);
+  pickupStations.KeepValue(0);
+  if (pickupStations.IsEmpty()) return false;
+
+  local station = pickupStations.Begin();
   local stationTile = AIStation.GetLocation(station);
   context.rawset(this.stationTileKey, stationTile);
   context.rawset(this.stationTileKey + "entrance", stationTile + AIMap.GetTileIndex(-1, -1));
