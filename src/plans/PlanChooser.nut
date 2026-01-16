@@ -18,6 +18,7 @@ class PlanChooser
   static function _IsIndustryAlreadyServicedByUs(industryId);
   static function _IsIndustryCloseToTile(industryId, tileId);
   static function _RemoveForbiddenDestinations(producerId, consumers);
+  static function _IsRoundTripPossible(producerId, consumerId, cargoId);
 
   static minTrucksLeftToBuildRoute = 50;
 }
@@ -28,13 +29,15 @@ class RoadConnectionPlanData
   consumer = -1;
   cargo = -1;
   eval = -1;
+  isRoundTrip = false;
 
-  constructor(producer, consumer, cargo, eval)
+  constructor(producer, consumer, cargo, eval, isRoundTrip)
   {
     this.producer = producer;
     this.consumer = consumer;
     this.cargo = cargo;
     this.eval = eval;
+    this.isRoundTrip = isRoundTrip;
   }
 }
 
@@ -126,7 +129,7 @@ function PlanChooser::NextRoadConnectionPlan()
       local consumerAndEval = _CargoIndustryBestConsumerAndEval(cargoId, industryId);
       if (consumerAndEval != null)
       {
-        allPlans.push(RoadConnectionPlanData(industryId, consumerAndEval.consumerId, cargoId, consumerAndEval.eval));
+        allPlans.push(RoadConnectionPlanData(industryId, consumerAndEval.consumerId, cargoId, consumerAndEval.eval, consumerAndEval.isRoundTrip));
       }
     }
   }
@@ -137,7 +140,7 @@ function PlanChooser::NextRoadConnectionPlan()
   }
   allEvals.Sort(AIList.SORT_BY_VALUE, false); // descending
   local bestPlan = GetWeightedRandomPlan(allPlans, allEvals);
-  return bestPlan != null ? RoadConnectionPlan(bestPlan.producer, bestPlan.consumer, bestPlan.cargo) : null;
+  return bestPlan != null ? RoadConnectionPlan(bestPlan.producer, bestPlan.consumer, bestPlan.cargo, bestPlan.isRoundTrip) : null;
 }
 
 function PlanChooser::_ReasonableCargosToPickup(industryId)
@@ -237,7 +240,12 @@ function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
     {
       synergyFactor *= 1.2;
     }
-    return (production * distanceFactor * cargoIncome * synergyFactor).tointeger();
+    local roundTripFactor = 1.0;
+    if (PlanChooser._IsRoundTripPossible(producerId, consumerId, cargoId))
+    {
+      roundTripFactor = 2.0;
+    }
+    return (production * distanceFactor * cargoIncome * synergyFactor * roundTripFactor).tointeger();
   };
   consumers.Valuate(consumerEval, cargoId, producerId);
   consumers.Sort(AIList.SORT_BY_VALUE, false); // descending
@@ -247,8 +255,22 @@ function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
   {
     return null; // no reasonable consumers
   }
+  local isRoundTrip = PlanChooser._IsRoundTripPossible(producerId, bestConsumer, cargoId);
  
-  return { consumerId = bestConsumer, eval = bestEval };
+  return { consumerId = bestConsumer, eval = bestEval, isRoundTrip = isRoundTrip };
+}
+
+function PlanChooser::_IsRoundTripPossible(producerId, consumerId, cargoId)
+{
+  if (AIIndustry.IsCargoAccepted(producerId, cargoId) != AIIndustry.CAS_ACCEPTED)
+  {
+    return false;
+  }
+  if (AIIndustry.GetLastMonthProduction(consumerId, cargoId) == 0 || AIIndustry.GetLastMonthTransported(consumerId, cargoId) > 0)
+  {
+    return false;
+  }
+  return true;
 }
 
 

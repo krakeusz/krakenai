@@ -9,13 +9,14 @@ require("../names/StationName.nut");
 
 class RoadConnectionPlan extends Plan
 {
-  constructor(producerId, consumerId, cargoId)
+  constructor(producerId, consumerId, cargoId, isRoundTrip)
   {
     ::Plan.constructor();
 
     context.producerId <- producerId;
     context.consumerId <- consumerId;
     context.cargoId <- cargoId;
+    context.isRoundTrip <- isRoundTrip;
     this.name = AIIndustry.GetName(producerId) + " - " + AIIndustry.GetName(consumerId) + " (" + AICargo.GetCargoLabel(cargoId) + ")";
     context.connectionName <- this.name;
     context.shortConnectionName <- AICargo.GetCargoLabel(cargoId) + " " + StationName.IndustryShortName(producerId) + "-" + StationName.IndustryShortName(consumerId);
@@ -32,7 +33,7 @@ class RoadConnectionPlan extends Plan
     local depot2Name = consumerStationName + " depot";
     _AddAction(ProvideDepotAction(context, consumerTileKey + "entrance", depot2Name));
     local bestEngineId = _ChooseBestEngineId(cargoId);
-    _AddAction(BuildTrucksAction(context, bestEngineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1Name + "_tile", depot2Name + "_tile"));
+    _AddAction(BuildTrucksAction(context, bestEngineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1Name + "_tile", depot2Name + "_tile", isRoundTrip));
     _AddAction(WaitForFirstTruckAtPickupAction(context, producerStationName, producerTileKey, cargoId));
   }
 

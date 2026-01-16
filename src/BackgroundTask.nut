@@ -72,6 +72,9 @@ function _KrakenAI_BackgroundTask::_SellVehiclesInDepots()
 
   vehicles.Valuate(AIVehicle.GetState);
   vehicles.KeepValue(AIVehicle.VS_IN_DEPOT);
+
+  vehicles.Valuate(AIVehicle.GetAge);
+  vehicles.RemoveBelowValue(30); // only sell vehicles older than 30 days, to avoid selling newly bought vehicles
   
   for (local vehicleId = vehicles.Begin(); !vehicles.IsEnd(); vehicleId = vehicles.Next())
   {

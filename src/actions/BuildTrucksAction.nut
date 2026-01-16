@@ -4,7 +4,7 @@ require("../road_helpers/TruckOrders.nut")
 
 class BuildTrucksAction extends Action
 {
-  constructor(context, engineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1TileKey, depot2TileKey)
+  constructor(context, engineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1TileKey, depot2TileKey, isRoundTrip)
   {
     ::Action.constructor();
     this.engineId = engineId;
@@ -13,6 +13,7 @@ class BuildTrucksAction extends Action
     this.consumerTileKey = consumerTileKey;
     this.depot1TileKey = depot1TileKey;
     this.depot2TileKey = depot2TileKey;
+    this.isRoundTrip = isRoundTrip;
 
     local production = AIIndustry.GetLastMonthProduction(producerId, cargoId);
     local capacity = AIEngine.GetCapacity(engineId);
@@ -33,11 +34,12 @@ class BuildTrucksAction extends Action
   depot1TileKey = "";
   depot2TileKey = "";
   nTrucks = 0;
+  isRoundTrip = false;
 }
 
 function BuildTrucksAction::Name(context)
 {
-  return "Building at most " + this.nTrucks + " trucks for " + context.connectionName;
+  return "Building at most " + this.nTrucks + " trucks for " + context.connectionName + " (round trip: " + (this.isRoundTrip ? "yes" : "no") + ")";
 }
 
 function BuildTrucksAction::_Do(context)
@@ -75,7 +77,7 @@ function BuildTrucksAction::_Do(context)
     {
       local producerTile = context.rawget(this.producerTileKey);
       local consumerTile = context.rawget(this.consumerTileKey);
-      TruckOrders.SetDefaultTruckOrders(vehicleId, producerTile, consumerTile, depot1Tile, depot2Tile);
+      TruckOrders.SetDefaultTruckOrders(vehicleId, producerTile, consumerTile, depot1Tile, depot2Tile, this.isRoundTrip);
     }
     else
     {

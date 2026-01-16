@@ -11,10 +11,11 @@ class TruckOrders
   static STOP_IN_DEPOT_ORDER = 5;
 }
 
-function TruckOrders::SetDefaultTruckOrders(vehicleId, station1Tile, station2Tile, depot1Tile, depot2Tile)
+function TruckOrders::SetDefaultTruckOrders(vehicleId, station1Tile, station2Tile, depot1Tile, depot2Tile, isRoundTrip)
 {
   AIOrder.AppendOrder(vehicleId, station1Tile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_FULL_LOAD_ANY);
-  AIOrder.AppendOrder(vehicleId, station2Tile, AIOrder.OF_NON_STOP_INTERMEDIATE | AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD);
+  local unloadFlags = (isRoundTrip ? AIOrder.OF_UNLOAD : AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD);
+  AIOrder.AppendOrder(vehicleId, station2Tile, AIOrder.OF_NON_STOP_INTERMEDIATE | unloadFlags);
   AIOrder.AppendOrder(vehicleId, depot2Tile, AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE);
   AIOrder.AppendOrder(vehicleId, depot1Tile, AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE);
   local conditionalOrderPosition = AIOrder.GetOrderCount(vehicleId);
