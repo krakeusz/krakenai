@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DEST="D:/Program Files/OpenTTD/ai/krakenai"
+DEST="D:/SteamLibrary/steamapps/common/OpenTTD/ai/krakenai"
 
 rm -rf "$DEST"
 mkdir -p "$DEST"

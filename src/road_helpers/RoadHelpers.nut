@@ -157,7 +157,7 @@ function RoadHelpers::BuildBridge(vehicleType, bridgeId, fromTile, toTile)
         RoadHelpers._Delay("Not enough cash to build bridge", 50);
         break;
       case AIError.ERR_ALREADY_BUILT:
-        return;
+        return true;
       case AIError.ERR_VEHICLE_IN_THE_WAY:
         RoadHelpers._Delay("Cannot build bridge: vehicle in the way", 10);
         break;
@@ -166,6 +166,7 @@ function RoadHelpers::BuildBridge(vehicleType, bridgeId, fromTile, toTile)
         throw "Error while building bridge"
     }
   }
+  return true;
 }
 
 function RoadHelpers::BuildTunnel(vehicleType, fromTile, toTile)

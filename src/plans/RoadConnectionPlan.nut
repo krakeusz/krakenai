@@ -27,12 +27,12 @@ class RoadConnectionPlan extends Plan
     local consumerTileKey = "consumerStationTile";
     local consumerStationName = AIIndustry.GetName(consumerId) + " " + AICargo.GetName(cargoId) + " DROP";
     _AddAction(ProvideStationAction(context, consumerId, cargoId, consumerTileKey, 0, consumerStationName));
-    _AddAction(FindAndBuildRoadAction(context, producerTileKey + "entrance", consumerTileKey + "entrance"));
+    local bestEngineId = _ChooseBestEngineId(cargoId);
+    _AddAction(FindAndBuildRoadAction(context, producerTileKey + "entrance", consumerTileKey + "entrance", bestEngineId));
     local depot1Name = producerStationName + " depot";
     _AddAction(ProvideDepotAction(context, producerTileKey + "entrance", depot1Name));
     local depot2Name = consumerStationName + " depot";
     _AddAction(ProvideDepotAction(context, consumerTileKey + "entrance", depot2Name));
-    local bestEngineId = _ChooseBestEngineId(cargoId);
     _AddAction(BuildTrucksAction(context, bestEngineId, cargoId, producerId, consumerId, producerTileKey, consumerTileKey, depot1Name + "_tile", depot2Name + "_tile", isRoundTrip));
     _AddAction(WaitForFirstTruckAtPickupAction(context, producerStationName, producerTileKey, cargoId));
   }
