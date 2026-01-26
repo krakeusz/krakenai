@@ -1,0 +1,19 @@
+load("@rules_uv//uv:venv.bzl", "create_venv")
+load("//scripts/bazel:package_squirrel_ai.bzl", "flatten_squirrel_includes", "make_archive")
+
+# not supported on Windows yet https://github.com/bazel-contrib/rules_uv/issues/273
+create_venv(
+    name = "create_venv",
+    requirements_txt = "//scripts/python:requirements.txt",
+)
+
+flatten_squirrel_includes(
+    name = "flattened_sources",
+    srcs = glob(["src/**/*.nut", "info.nut", "main.nut"]),
+)
+
+make_archive(
+    name = "krakenai",
+    srcs = [":flattened_sources"],
+    extra_files = ["//:LICENSE"],
+)

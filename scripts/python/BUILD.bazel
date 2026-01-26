@@ -1,0 +1,16 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_test.bzl", "py_test")
+
+py_binary(
+    name = "flatten_squirrel_includes",
+    srcs = ["flatten_squirrel_includes.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "test_flatten_squirrel_includes",
+    srcs = ["tests/test_flatten_squirrel_includes.py"],
+    deps = [":flatten_squirrel_includes"],
+)
+
+exports_files(["requirements.txt"])
