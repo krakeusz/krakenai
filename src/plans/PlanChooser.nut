@@ -19,6 +19,8 @@ class PlanChooser
   static function _IsIndustryCloseToTile(industryId, tileId);
   static function _RemoveForbiddenDestinations(producerId, consumers);
   static function _IsRoundTripPossible(producerId, consumerId, cargoId);
+  static function _GetWaterFactorBetweenIndustries(producerId, consumerId);
+  static function _InterpolateTile(tileA, tileB, factor);
 
   static minTrucksLeftToBuildRoute = 50;
 }
@@ -240,12 +242,14 @@ function PlanChooser::_CargoIndustryBestConsumerAndEval(cargoId, producerId)
     {
       synergyFactor *= 1.2;
     }
+    local waterFactor = PlanChooser._GetWaterFactorBetweenIndustries(producerId, consumerId);
+    waterFactor *= waterFactor; // square the factor to penalize water tiles more
     local roundTripFactor = 1.0;
     if (PlanChooser._IsRoundTripPossible(producerId, consumerId, cargoId))
     {
       roundTripFactor = 2.0;
     }
-    return (production * distanceFactor * cargoIncome * synergyFactor * roundTripFactor).tointeger();
+    return (production * distanceFactor * cargoIncome * synergyFactor * roundTripFactor * waterFactor).tointeger();
   };
   consumers.Valuate(consumerEval, cargoId, producerId);
   consumers.Sort(AIList.SORT_BY_VALUE, false); // descending
@@ -285,4 +289,34 @@ function PlanChooser::_IsIndustryCloseToTile(industryId, tileId)
   local distance = AIMap.DistanceManhattan(industryLocation, tileId);
   const MAX_DISTANCE = 20;
   return distance <= MAX_DISTANCE;
+}
+
+function PlanChooser::_InterpolateTile(tileA, tileB, factor /* 0.0 - 1.0 */)
+{
+  local ax = AIMap.GetTileX(tileA);
+  local ay = AIMap.GetTileY(tileA);
+  local bx = AIMap.GetTileX(tileB);
+  local by = AIMap.GetTileY(tileB);
+  local ix = ax + ((bx - ax) * factor).tointeger();
+  local iy = ay + ((by - ay) * factor).tointeger();
+  return AIMap.GetTileIndex(ix, iy);
+}
+
+function PlanChooser::_GetWaterFactorBetweenIndustries(producerId, consumerId)
+{
+  // 1.0 for no water tiles between, 0.0 for all water tiles between
+  const STEPS = 20;
+  local producerTile = AIIndustry.GetLocation(producerId);
+  local consumerTile = AIIndustry.GetLocation(consumerId);
+  local waterTilesCount = 0;
+  for (local i = 0; i < STEPS; i++)
+  {
+    local scaleFactor = ((i + 1).tofloat() / (STEPS + 1).tofloat());
+    local interpolatedTile = PlanChooser._InterpolateTile(producerTile, consumerTile, scaleFactor);
+    if (AITile.IsWaterTile(interpolatedTile))
+    {
+      waterTilesCount++;
+    }
+  }
+  return 1.0 - (waterTilesCount).tofloat() / STEPS.tofloat();
 }
