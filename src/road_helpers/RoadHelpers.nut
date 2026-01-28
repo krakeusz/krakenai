@@ -1,4 +1,5 @@
 import("util.superlib", "SuperLib", 40);
+require("../game/PersistentStorage.nut");
 
 class RoadHelpers
 {
@@ -28,6 +29,8 @@ class RoadHelpers
   static function IncomingTrucks(stationId);
 
   static function IsTruckGroupUnprofitable(groupId);
+  static function ForbidNewConnections(pickupTile, dropTile);
+
 }
 
 function RoadHelpers::BuildRoadVehicle(depotTile, engineId)
@@ -342,3 +345,11 @@ function RoadHelpers::GetUnprofitableTruckGroups()
 {
   return AIGroupList(RoadHelpers.IsTruckGroupUnprofitable);
 }
+
+function RoadHelpers::ForbidNewConnections(pickupTile, dropTile)
+  {
+    local unprofitableConnections = PersistentStorage.LoadUnprofitableConnections();
+    unprofitableConnections.append({pickupTileId = pickupTile, dropTileId = dropTile}); // change this to tiles
+    PersistentStorage.SaveUnprofitableConnections(unprofitableConnections);
+    AILog.Warning("Forbidden new connections between " + pickupTile + " and " + dropTile);
+  }

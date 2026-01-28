@@ -1,7 +1,8 @@
 #!/bin/sh
+set -eux
 
-DEST="D:/SteamLibrary/steamapps/common/OpenTTD/ai/krakenai"
+DEST="D:/Documents/OpenTTD/ai/krakenai"
 
 rm -rf "$DEST"
 mkdir -p "$DEST"
-cp -r ./* "$DEST/"
+cp -r ./src *.nut "$DEST/"

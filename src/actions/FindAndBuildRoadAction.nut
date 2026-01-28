@@ -32,12 +32,13 @@ function FindAndBuildRoadAction::_FindPath(context, pathfinder)
 {
   local producerTile = context.rawget(this.producerTileKey);
   local consumerTile = context.rawget(this.consumerTileKey);
+  local iterationsLeft = 100;
   pathfinder.InitializePath([producerTile], [consumerTile], []);
 
   local path = false;
-  while (path == false) 
+  while (path == false && iterationsLeft-- > 0) 
   {
-    AILog.Info("Searching for path...");
+    AILog.Info("Searching for path (" + iterationsLeft + " iteration(s) left)...");
     path = pathfinder.FindPath(200);
     KrakenAI.BackgroundTask.Run();
   }
@@ -46,6 +47,7 @@ function FindAndBuildRoadAction::_FindPath(context, pathfinder)
   } else {
     path = null;
     AILog.Warning("Path could not be found.");
+    RoadHelpers.ForbidNewConnections(producerTile, consumerTile);
   }
   return path;
 }
@@ -191,6 +193,9 @@ function FindAndBuildRoadAction::_Do(context)
   do {
     restart = false;
     local path = this._FindPath(context, pathfinder);
+    if (path == null) {
+      return false;
+    }
     
     if (!this._BuildPath(context, path)) {
       if (restartsLeft > 0) {

@@ -1,5 +1,5 @@
 require("Action.nut")
-require("../game/PersistentStorage.nut")
+require("../road_helpers/RoadHelpers.nut")
 
 class SelloutRoadGroupAction extends Action
 {
@@ -29,7 +29,7 @@ class SelloutRoadGroupAction extends Action
         firstVehicle = false;
         local pickupTile = TruckOrders.GetPickupStationTile(vehicle);
         local dropTile = TruckOrders.GetDropStationTile(vehicle);
-        ForbidNewConnections(pickupTile, dropTile);
+        RoadHelpers.ForbidNewConnections(pickupTile, dropTile);
       }
       AILog.Info("Sending vehicle " + AIVehicle.GetName(vehicle) + " # " + vehicle + " to depot.");
       TruckOrders.StopInDepot(vehicle);
@@ -42,11 +42,5 @@ class SelloutRoadGroupAction extends Action
 
   }
 
-  function ForbidNewConnections(pickupTile, dropTile)
-  {
-    local unprofitableConnections = PersistentStorage.LoadUnprofitableConnections();
-    unprofitableConnections.append({pickupTileId = pickupTile, dropTileId = dropTile}); // change this to tiles
-    PersistentStorage.SaveUnprofitableConnections(unprofitableConnections);
-    AILog.Warning("Forbidden new connections between " + pickupTile + " and " + dropTile);
-  }
+  
 }
